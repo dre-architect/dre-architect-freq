@@ -1,0 +1,449 @@
+---
+// FREQ AI — Platform Page
+// Barge drafting simulation with PlayCanvas
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Platform | FREQ AI</title>
+  <meta name="description" content="FREQ AI's hardware-agnostic intelligence platform for autonomous maritime cargo operations. See the live simulation.">
+  <meta name="keywords" content="maritime intelligence, barge drafting, autonomous operations, cargo intelligence, maritime technology, inland waterways, draft survey automation">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Platform | FREQ AI">
+  <meta property="og:description" content="FREQ AI's hardware-agnostic intelligence platform for autonomous maritime cargo operations. See the live simulation.">
+  <meta property="og:image" content="https://freqai.io/og-image.svg">
+  <meta property="og:url" content="https://freqai.io/platform/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Platform | FREQ AI">
+  <meta name="twitter:description" content="FREQ AI's hardware-agnostic intelligence platform for autonomous maritime cargo operations. See the live simulation.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/platform.css">
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 border-b border-[#1E293B]" style="background:rgba(8,12,24,0.85);backdrop-filter:blur(12px);">
+    <div class="max-w-[1280px] mx-auto px-4 md:px-8 flex items-center justify-between h-16">
+      <a href="/" class="font-heading text-white text-lg font-bold tracking-tight" style="font-family:var(--font-heading);">FREQ AI</a>
+      <div class="hidden md:flex items-center gap-6">
+        <a href="/platform" class="text-sm transition-colors text-white border-b-2 border-[#7C3AED] pb-0.5" style="font-family:var(--font-heading);">Platform</a>
+        <a href="/solutions/barge-drafting" class="text-sm transition-colors text-[#94A3B8] hover:text-white" style="font-family:var(--font-heading);">Solutions</a>
+        <a href="/about" class="text-sm transition-colors text-[#94A3B8] hover:text-white" style="font-family:var(--font-heading);">About</a>
+        <a href="/team" class="text-sm transition-colors text-[#94A3B8] hover:text-white" style="font-family:var(--font-heading);">Team</a>
+        <a href="/contact" class="text-sm transition-colors text-[#94A3B8] hover:text-white" style="font-family:var(--font-heading);">Contact</a>
+        <a href="/contact" class="btn-primary text-sm !py-2 !px-4">Get Started</a>
+      </div>
+      <button id="mobile-menu-btn" class="md:hidden text-white p-2" aria-label="Open navigation menu">
+        <span id="hamburger-icon" class="block">
+          <span class="block w-5 h-0.5 bg-white mb-1 transition-all duration-200" id="bar1"></span>
+          <span class="block w-5 h-0.5 bg-white mb-1 transition-all duration-200" id="bar2"></span>
+          <span class="block w-5 h-0.5 bg-white transition-all duration-200" id="bar3"></span>
+        </span>
+      </button>
+    </div>
+    <div id="mobile-menu" class="hidden md:hidden border-t border-[#1E293B]" style="background:rgba(8,12,24,0.95);">
+      <div class="px-4 py-4 flex flex-col gap-3">
+        <a href="/platform" class="text-sm py-2 text-white" style="font-family:var(--font-heading);">Platform</a>
+        <a href="/solutions/barge-drafting" class="text-sm py-2 text-[#94A3B8]" style="font-family:var(--font-heading);">Solutions</a>
+        <a href="/about" class="text-sm py-2 text-[#94A3B8]" style="font-family:var(--font-heading);">About</a>
+        <a href="/team" class="text-sm py-2 text-[#94A3B8]" style="font-family:var(--font-heading);">Team</a>
+        <a href="/contact" class="text-sm py-2 text-[#94A3B8]" style="font-family:var(--font-heading);">Contact</a>
+        <a href="/contact" class="btn-primary text-sm text-center !py-2 !px-4 mt-2">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <script type="module">
+    const t=document.getElementById("mobile-menu-btn"),s=document.getElementById("mobile-menu"),n=document.getElementById("bar1"),a=document.getElementById("bar2"),l=document.getElementById("bar3");let e=!1;t?.addEventListener("click",()=>{e=!e,s?.classList.toggle("hidden",!e),e?(n.style.transform="rotate(45deg) translate(2px, 4px)",a.style.opacity="0",l.style.transform="rotate(-45deg) translate(2px, -4px)",t.setAttribute("aria-label","Close navigation menu")):(n.style.transform="",a.style.opacity="1",l.style.transform="",t.setAttribute("aria-label","Open navigation menu"))});
+  </script>
+
+  <main class="flex-1 pt-16">
+
+    <!-- Hero Section -->
+    <section class="grid-bg py-24 md:py-32">
+      <div class="max-w-[1280px] mx-auto px-6 md:px-8 text-center">
+        <p class="section-label">Platform</p>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-normal text-white mb-6" style="font-family:var(--font-display);">The Intelligence Layer for Maritime Cargo Operations</h1>
+        <p class="text-lg text-[#94A3B8] max-w-3xl mx-auto">FREQ AI's platform sits between your existing hardware and your operational decisions &mdash; transforming raw sensor data into actionable cargo intelligence.</p>
+      </div>
+    </section>
+
+    <!-- Overview -->
+    <section class="py-24" style="background:#0D1424;">
+      <div class="max-w-[1280px] mx-auto px-6 md:px-8">
+        <p class="section-label">Overview</p>
+        <p class="text-[#94A3B8] max-w-3xl leading-relaxed">Our platform is hardware-agnostic by design. Whether your operation uses radar, LiDAR, pressure sensors, or visual monitoring, FREQ AI's intelligence layer normalizes data from any source into a unified operational picture. The result: autonomous drafting, real-time monitoring, and verified compliance reporting &mdash; regardless of what hardware generates the input.</p>
+      </div>
+    </section>
+
+    <!-- Capabilities -->
+    <section class="py-24">
+      <div class="max-w-[1280px] mx-auto px-6 md:px-8">
+        <p class="section-label">Capabilities</p>
+        <h2 class="text-3xl md:text-4xl font-semibold text-white mb-10" style="font-family:var(--font-heading);">What the Platform Delivers</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Autonomous Measurement</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Precision cargo draft readings acquired without manual intervention. Sub-inch accuracy across all measurement points.</p>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Real-Time Monitoring</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Continuous visibility into cargo status, vessel stability, and operational progress. Live data available to all stakeholders.</p>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Safety Governance</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Integrated hazard detection with automatic operational safeguards. Man-overboard risk eliminated from the drafting process.</p>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Compliance &amp; Reporting</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Automated generation of draft surveys, cargo manifests, and regulatory documentation. Complete audit trail for every operation.</p>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Hardware Agnostic</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Works with any sensor input &mdash; radar, LiDAR, pressure, drone, or visual. Your hardware, our intelligence.</p>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Fleet Scale</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Designed for single-vessel operations or enterprise fleet management. Intelligence that scales with your operation.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Simulation Section -->
+    <section class="py-24" style="background:#0D1424;" id="simSection">
+      <div class="max-w-[1400px] mx-auto px-4 md:px-8">
+        <div class="text-center mb-10">
+          <p class="section-label">Live Demonstration</p>
+          <h2 class="text-3xl md:text-4xl font-semibold text-white mb-4" style="font-family:var(--font-display);">Operational Digital Twin</h2>
+          <p class="text-[#94A3B8] max-w-3xl mx-auto text-sm">Authorize the scene, watch Ghost LiDAR scan the hull, see the crane receive live load instructions, and follow the aggregate-loading workflow from empty hold to verified final survey. The scene stays still until you unlock it.</p>
+        </div>
+
+        <div id="sim-container">
+          <!-- Control Bar -->
+          <div id="sim-control-bar">
+            <div class="sim-meta">
+              <span class="sim-pill">FREQ AI SOL</span>
+              <span class="sim-divider">&middot;</span>
+              <span class="sim-meta-label">BARGE DRAFTING SIMULATION</span>
+            </div>
+            <div class="sim-state">
+              <span id="sim-status-dot" class="status-dot idle"></span>
+              <span id="sim-status-label">SYSTEM READY</span>
+            </div>
+          </div>
+
+          <!-- Buttons Bar -->
+          <div id="sim-buttons-bar">
+            <div id="sim-action-btns">
+              <button id="btn-start" class="sim-btn sim-btn-primary" type="button" disabled>INITIATE SEQUENCE</button>
+              <button id="btn-pause" class="sim-btn sim-btn-warning" type="button" style="display:none;">PAUSE</button>
+              <button id="btn-resume" class="sim-btn sim-btn-secondary" type="button" style="display:none;">RESUME</button>
+              <button id="btn-reset" class="sim-btn sim-btn-muted" type="button" style="display:none;">RESET</button>
+              <button id="mobTriggerBtn" class="mob-trigger-btn" type="button" disabled>&#9888; TRIGGER MOB</button>
+            </div>
+            <div class="freq-camera-toolbar" id="cameraToolbar">
+              <span class="camera-toolbar-label">CAMERA</span>
+              <button class="cam-btn active" data-cam="orbit" type="button" title="Orbit view (Key 1)" disabled>ORBIT</button>
+              <button class="cam-btn" data-cam="overhead" type="button" title="Overhead view (Key 2)" disabled>OVERHEAD</button>
+              <button class="cam-btn" data-cam="side" type="button" title="Side view (Key 3)" disabled>SIDE</button>
+              <button class="cam-btn" data-cam="fore" type="button" title="Fore view (Key 4)" disabled>FORE</button>
+              <button class="cam-btn" data-cam="aft" type="button" title="Aft view (Key 5)" disabled>AFT</button>
+              <button class="cam-btn cam-btn-fp" data-cam="fp" type="button" title="First person (Key 6)" disabled>FIRST PERSON</button>
+              <button class="cam-btn" data-cam="station" type="button" title="Station close-up (Key 7)" disabled>STATION</button>
+              <button class="cam-btn cam-btn-reset" id="btnResetCam" type="button" disabled>RESET CAM</button>
+              <span class="active-cam-label" id="activeCameraLabel">Active: ORBIT VIEW</span>
+            </div>
+          </div>
+
+          <!-- Canvas Shell -->
+          <div id="freqCanvasShell">
+            <canvas id="freqCanvas"></canvas>
+
+            <!-- Authorization Gate -->
+            <div id="simConsentGate">
+              <div class="sim-consent-card">
+                <div class="briefing-kicker">Operator Authorization Required</div>
+                <div class="briefing-title">Unlock The Operational Digital Twin</div>
+                <p class="briefing-copy">The barge model remains static until you authorize it. Once unlocked, the simulation explains each phase, scans the empty hold, generates a crane load plan, and demonstrates the aggregate workflow from survey to final verification.</p>
+                <div class="briefing-points">
+                  <span>Ghost LiDAR surveys the empty hull before loading</span>
+                  <span>The crane receives live commands from the draft model</span>
+                  <span>The watchdog can halt operations instantly if a hazard appears</span>
+                </div>
+                <button id="btn-authorize" class="sim-btn sim-btn-primary" type="button">AUTHORIZE DIGITAL TWIN</button>
+              </div>
+            </div>
+
+            <!-- Operations Briefing Panel -->
+            <div id="simOpsPanel">
+              <div class="ops-kicker">Operations Briefing</div>
+              <div id="opsPhaseTitle" class="ops-phase-title">Awaiting operator authorization</div>
+              <p id="opsPhaseCopy" class="ops-phase-copy">Authorize the scene to reveal the survey scan, crane envelope, and the logic that distributes quarry load across the barge hold.</p>
+              <div class="ops-grid">
+                <div class="ops-cell">
+                  <span class="ops-label">SCAN</span>
+                  <strong id="opsScanStatus">LOCKED</strong>
+                </div>
+                <div class="ops-cell">
+                  <span class="ops-label">CRANE SIGNAL</span>
+                  <strong id="opsCraneSignal">M00 WAIT</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Signal Ribbon -->
+            <div id="simSignalRibbon">Ghost LiDAR locked pending authorization</div>
+
+            <!-- First Person Instructions -->
+            <div id="fpInstructions" class="sim-overlay-panel" style="display:none;">
+              <div class="overlay-title">FIRST PERSON MODE</div>
+              <div class="fp-grid">
+                <span>W / &uarr;</span><span>Move forward</span>
+                <span>S / &darr;</span><span>Move backward</span>
+                <span>A / &larr;</span><span>Move left</span>
+                <span>D / &rarr;</span><span>Move right</span>
+                <span>Mouse</span><span>Look around</span>
+                <span>ESC</span><span>Exit first person</span>
+              </div>
+              <p class="overlay-copy">You are on the barge deck. Walk to each measurement station. This is the manual process FREQ AI removes from the operation.</p>
+              <button id="fpEnterBtn" class="sim-btn sim-btn-primary" type="button">Enter Deck</button>
+            </div>
+            <div id="fpNarration"></div>
+            <div id="fpStationTooltip"></div>
+
+            <!-- Station Card -->
+            <div id="stationCard" class="sim-overlay-card" style="display:none;">
+              <div id="stationCardTitle" class="station-card-title">DRAFT STATION</div>
+              <div class="station-card-grid">
+                <span class="station-key">ID</span><span id="stationCardId" class="station-value">FP</span>
+                <span class="station-key">READING</span><span id="stationCardReading" class="station-value">10.20 ft</span>
+                <span class="station-key">STATUS</span><span id="stationCardStatus" class="station-value station-ok">NOMINAL</span>
+                <span class="station-key">METHOD</span><span class="station-value">AUTONOMOUS</span>
+                <span class="station-key">ACCURACY</span><span class="station-value station-ok">&plusmn; 0.02 ft</span>
+              </div>
+              <div class="station-card-note">Manual equivalent: visual read on hull marks with radio relay to shore.</div>
+              <div class="station-card-actions">
+                <button id="stationPrevBtn" class="sim-btn sim-btn-muted" type="button">PREV</button>
+                <button id="stationNextBtn" class="sim-btn sim-btn-muted" type="button">NEXT</button>
+                <button id="stationCloseBtn" class="sim-btn sim-btn-ghost" type="button">CLOSE</button>
+              </div>
+            </div>
+
+            <!-- MOB Overlays -->
+            <div id="mobBanner" class="mob-banner" style="display:none;">MAN OVERBOARD - EMERGENCY STOP</div>
+            <div id="mobCountdown" class="mob-countdown" style="display:none;">Safety hold: 10</div>
+            <div id="mobAllClear" class="mob-clear" style="display:none;">All clear - operations resuming</div>
+          </div>
+
+          <!-- Flow Strip -->
+          <div id="simFlowStrip">
+            <div class="flow-segment">
+              <span class="flow-label">LOAD PLAN</span>
+              <strong id="opsLoadVector">No draft packet released</strong>
+            </div>
+            <div class="flow-segment">
+              <span class="flow-label">DATA HANDOFF</span>
+              <strong id="opsTransferStatus">Transfer bus idle</strong>
+            </div>
+            <div class="flow-segment">
+              <span class="flow-label">CRANE G-CODE</span>
+              <code id="opsCraneCommand">M00 WAIT</code>
+            </div>
+          </div>
+
+          <!-- Telemetry -->
+          <div id="sim-telemetry">
+            <div class="tel-cell">
+              <span class="tel-label">PHASE</span>
+              <span class="tel-value" id="telPhase">IDLE</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">FP</span>
+              <span class="tel-value" id="telFp">--</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">FS</span>
+              <span class="tel-value" id="telFs">--</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">MP</span>
+              <span class="tel-value" id="telMp">--</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">MS</span>
+              <span class="tel-value" id="telMs">--</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">AP</span>
+              <span class="tel-value" id="telAp">--</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">AS</span>
+              <span class="tel-value" id="telAs">--</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">TRIM</span>
+              <span class="tel-value" id="telTrim">0.00 ft</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">HEEL</span>
+              <span class="tel-value" id="telHeel">0.00 deg</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">LOAD</span>
+              <span class="tel-value" id="telCargo">0 t</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">GM</span>
+              <span class="tel-value" id="telGm">4.85 ft</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">STATUS</span>
+              <span class="tel-value" id="telStatus">NOMINAL</span>
+            </div>
+            <div class="tel-cell">
+              <span class="tel-label">ELAPSED</span>
+              <span class="tel-value" id="telElapsed">00:00</span>
+            </div>
+          </div>
+
+          <!-- Phase Bar -->
+          <div id="sim-phase-bar">
+            <div class="phase-header">Operational Sequence</div>
+            <div class="phase-track">
+              <div class="phase-node" data-phase="0">
+                <div id="phase-dot-0" class="phase-dot"><span>1</span></div>
+                <span id="phase-lbl-0" class="phase-label" data-short="SURVEY">SURVEY</span>
+              </div>
+              <div class="phase-line"></div>
+              <div class="phase-node" data-phase="1">
+                <div id="phase-dot-1" class="phase-dot"><span>2</span></div>
+                <span id="phase-lbl-1" class="phase-label" data-short="BALLAST">BALLAST</span>
+              </div>
+              <div class="phase-line"></div>
+              <div class="phase-node" data-phase="2">
+                <div id="phase-dot-2" class="phase-dot"><span>3</span></div>
+                <span id="phase-lbl-2" class="phase-label" data-short="CRANE">CRANE</span>
+              </div>
+              <div class="phase-line"></div>
+              <div class="phase-node" data-phase="3">
+                <div id="phase-dot-3" class="phase-dot"><span>4</span></div>
+                <span id="phase-lbl-3" class="phase-label" data-short="LOADING">LOADING</span>
+              </div>
+              <div class="phase-line"></div>
+              <div class="phase-node" data-phase="4">
+                <div id="phase-dot-4" class="phase-dot"><span>5</span></div>
+                <span id="phase-lbl-4" class="phase-label" data-short="TRIM">TRIM</span>
+              </div>
+              <div class="phase-line"></div>
+              <div class="phase-node" data-phase="5">
+                <div id="phase-dot-5" class="phase-dot"><span>6</span></div>
+                <span id="phase-lbl-5" class="phase-label" data-short="FINAL">FINAL</span>
+              </div>
+            </div>
+            <div id="phase-desc"></div>
+          </div>
+
+          <!-- Completion Card -->
+          <div id="sim-complete" style="display:none;">
+            <div class="complete-title">SURVEY COMPLETE - BARGE-402</div>
+            <div class="complete-grid">
+              <div>Total Operation Time: <span id="completeTime">00:00</span></div>
+              <div>Final Average Draft: <span id="completeDraft">12.45 ft</span></div>
+              <div>Trim / Heel: <span id="completeBalance">0.00 ft / 0.00 deg</span></div>
+              <div>Crew Deck Exposure: <span class="station-ok">ZERO</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Use Cases -->
+    <section class="py-24" id="useCases">
+      <div class="max-w-[1280px] mx-auto px-6 md:px-8">
+        <p class="section-label">Use Cases</p>
+        <h2 class="text-3xl md:text-4xl font-semibold text-white mb-10" style="font-family:var(--font-heading);">Built for Maritime Operations</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Autonomous Barge Draft Measurement</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed mb-4">Automate the 4-hour manual drafting process in 10-15 minutes with zero crew exposure.</p>
+            <a href="/solutions/barge-drafting/" class="text-sm text-[#06B6D4] hover:underline">View Solution &rarr;</a>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Cargo Load Optimization</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Maximize revenue per barge trip through precision loading and real-time stability monitoring.</p>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Safety Monitoring</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Continuous operational zone monitoring with automatic hazard detection and emergency protocols.</p>
+          </div>
+          <div class="card">
+            <h3 class="text-lg font-semibold text-white mb-3" style="font-family:var(--font-heading);">Fleet Intelligence</h3>
+            <p class="text-sm text-[#94A3B8] leading-relaxed">Real-time visibility across your entire barge fleet unified in a single intelligence platform.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-24" style="background:#0D1424;">
+      <div class="max-w-[1280px] mx-auto px-6 md:px-8 text-center">
+        <h2 class="text-3xl md:text-4xl font-semibold text-white mb-6" style="font-family:var(--font-heading);">Ready to see what FREQ AI can do for your operation?</h2>
+        <a href="/contact/" class="btn-primary">Contact Us</a>
+      </div>
+    </section>
+
+    <!-- PlayCanvas Engine + Simulation -->
+    <script src="https://code.playcanvas.com/playcanvas-stable.min.js" defer></script>
+    <script src="/simulation-pc.js?v=9" defer></script>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-[#1E293B]" style="background:#080C18;">
+    <div class="max-w-[1280px] mx-auto px-4 md:px-8 pt-16 pb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div>
+          <span class="font-bold text-white text-lg block mb-2" style="font-family:var(--font-heading);">FREQ AI</span>
+          <p class="text-sm text-[#94A3B8]">Autonomous Maritime Intelligence</p>
+        </div>
+        <div>
+          <h4 class="font-label text-[#64748B] mb-3" style="font-family:var(--font-label);text-transform:uppercase;letter-spacing:0.1em;font-size:0.7rem;">Product</h4>
+          <ul class="space-y-2">
+            <li><a href="/platform" class="text-sm text-[#94A3B8] hover:text-white transition-colors">Platform</a></li>
+            <li><a href="/solutions/barge-drafting" class="text-sm text-[#94A3B8] hover:text-white transition-colors">Barge Drafting</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-label text-[#64748B] mb-3" style="font-family:var(--font-label);text-transform:uppercase;letter-spacing:0.1em;font-size:0.7rem;">Company</h4>
+          <ul class="space-y-2">
+            <li><a href="/about" class="text-sm text-[#94A3B8] hover:text-white transition-colors">About</a></li>
+            <li><a href="/team" class="text-sm text-[#94A3B8] hover:text-white transition-colors">Team</a></li>
+            <li><a href="/contact" class="text-sm text-[#94A3B8] hover:text-white transition-colors">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-label text-[#64748B] mb-3" style="font-family:var(--font-label);text-transform:uppercase;letter-spacing:0.1em;font-size:0.7rem;">Connect</h4>
+          <ul class="space-y-2">
+            <li><a href="mailto:info@freqai.io" class="text-sm text-[#94A3B8] hover:text-white transition-colors">info@freqai.io</a></li>
+            <li><a href="https://linkedin.com/in/dre-orchestrator" target="_blank" rel="noopener noreferrer" class="text-sm text-[#94A3B8] hover:text-white transition-colors">LinkedIn</a></li>
+            <li><span class="text-sm text-[#64748B]">Slidell, Louisiana</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-[#1E293B] pt-6">
+        <p class="text-xs text-[#64748B] text-center">&copy; 2026 FREQ AI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
