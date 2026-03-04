@@ -521,6 +521,109 @@
     craneTransferBeam.enabled = false;
     worldRoot.addChild(craneTransferBeam);
 
+    /* ── Crane material stream (aggregate pour) ── */
+    var matAggregateStream = new pc.StandardMaterial();
+    matAggregateStream.diffuse = new pc.Color(0.42, 0.35, 0.24);
+    matAggregateStream.emissive = new pc.Color(0.12, 0.09, 0.04);
+    matAggregateStream.emissiveIntensity = 0.3;
+    matAggregateStream.opacity = 0.72;
+    matAggregateStream.blendType = pc.BLEND_NORMAL;
+    matAggregateStream.update();
+
+    var matSplash = new pc.StandardMaterial();
+    matSplash.diffuse = new pc.Color(0.48, 0.40, 0.28);
+    matSplash.emissive = new pc.Color(0.15, 0.11, 0.05);
+    matSplash.emissiveIntensity = 0.4;
+    matSplash.opacity = 0.55;
+    matSplash.blendType = pc.BLEND_NORMAL;
+    matSplash.update();
+
+    var craneStream = new pc.Entity('craneStream');
+    craneStream.addComponent('render', { type: 'box' });
+    craneStream.render.meshInstances[0].material = matAggregateStream;
+    craneStream.enabled = false;
+    worldRoot.addChild(craneStream);
+
+    var craneStreamInner = new pc.Entity('craneStreamInner');
+    craneStreamInner.addComponent('render', { type: 'box' });
+    craneStreamInner.render.meshInstances[0].material = matAggregateStream;
+    craneStreamInner.enabled = false;
+    worldRoot.addChild(craneStreamInner);
+
+    var splashCloud = new pc.Entity('splashCloud');
+    splashCloud.addComponent('render', { type: 'sphere' });
+    splashCloud.render.meshInstances[0].material = matSplash;
+    splashCloud.enabled = false;
+    worldRoot.addChild(splashCloud);
+
+    /* ── Falling aggregate particles ── */
+    var aggregateParticles = [];
+    var matParticle = new pc.StandardMaterial();
+    matParticle.diffuse = new pc.Color(0.38, 0.32, 0.22);
+    matParticle.emissive = new pc.Color(0.10, 0.07, 0.03);
+    matParticle.emissiveIntensity = 0.2;
+    matParticle.update();
+
+    for (var particleIdx = 0; particleIdx < 12; particleIdx += 1) {
+      var particle = new pc.Entity('aggParticle_' + particleIdx);
+      particle.addComponent('render', { type: 'box' });
+      var pSize = 0.12 + Math.random() * 0.18;
+      particle.setLocalScale(pSize, pSize, pSize);
+      particle.render.meshInstances[0].material = matParticle;
+      particle.enabled = false;
+      worldRoot.addChild(particle);
+      aggregateParticles.push({
+        entity: particle,
+        phase: (particleIdx / 12) * Math.PI * 2,
+        speed: 3.5 + Math.random() * 2.5,
+        offsetX: (Math.random() - 0.5) * 0.5,
+        offsetZ: (Math.random() - 0.5) * 0.5
+      });
+    }
+
+    /* ── Enhanced scan beam visuals ── */
+    var scanBeamFan = new pc.Entity('scanBeamFan');
+    scanBeamFan.addComponent('render', { type: 'plane' });
+    scanBeamFan.setLocalScale(0.2, 1, 6);
+    scanBeamFan.setLocalEulerAngles(0, 0, 0);
+    scanBeamFan.render.meshInstances[0].material = matScanBeam;
+    scanBeamFan.enabled = false;
+    bargeRoot.addChild(scanBeamFan);
+
+    var scanHullLineStarboard = new pc.Entity('scanHullLineStarboard');
+    scanHullLineStarboard.addComponent('render', { type: 'box' });
+    scanHullLineStarboard.setLocalScale(0.15, 4, 0.05);
+    scanHullLineStarboard.setLocalPosition(-21, -0.2, 4.02);
+    scanHullLineStarboard.render.meshInstances[0].material = matScanBeam;
+    scanHullLineStarboard.enabled = false;
+    bargeRoot.addChild(scanHullLineStarboard);
+
+    var scanGroundLine = new pc.Entity('scanGroundLine');
+    scanGroundLine.addComponent('render', { type: 'box' });
+    scanGroundLine.setLocalScale(0.12, 0.06, 8.2);
+    scanGroundLine.setLocalPosition(-21, -0.85, 0);
+    scanGroundLine.render.meshInstances[0].material = matScanBeam;
+    scanGroundLine.enabled = false;
+    bargeRoot.addChild(scanGroundLine);
+
+    var matStationFlash = new pc.StandardMaterial();
+    matStationFlash.diffuse = new pc.Color(0.95, 1, 1);
+    matStationFlash.emissive = new pc.Color(0.04, 0.85, 0.95);
+    matStationFlash.emissiveIntensity = 2.5;
+    matStationFlash.update();
+
+    var stationFlashRings = [];
+    for (var flashIdx = 0; flashIdx < stationDefs.length; flashIdx += 1) {
+      var flashRing = new pc.Entity('stationFlash_' + flashIdx);
+      flashRing.addComponent('render', { type: 'cylinder' });
+      flashRing.setLocalScale(0.01, 0.04, 0.01);
+      flashRing.setLocalPosition(stationDefs[flashIdx].pos[0], stationDefs[flashIdx].pos[1], stationDefs[flashIdx].pos[2]);
+      flashRing.render.meshInstances[0].material = matStationFlash;
+      flashRing.enabled = false;
+      bargeRoot.addChild(flashRing);
+      stationFlashRings.push(flashRing);
+    }
+
     var cameraEntity = new pc.Entity('camera');
     cameraEntity.addComponent('camera', {
       clearColor: new pc.Color(0.03, 0.04, 0.08),
@@ -1734,6 +1837,9 @@
       if (!scanActive) {
         scanBeam.enabled = false;
         scanHullLine.enabled = false;
+        scanHullLineStarboard.enabled = false;
+        scanGroundLine.enabled = false;
+        scanBeamFan.enabled = false;
         if (this.state === 'RUNNING' && this.currentPhase !== 'PRE-SURVEY') {
           this._revealAllStations();
           this.scanStatusText = this.currentPhase === 'FINAL-SURV' ? 'FINAL SCAN' : 'COMPLETE';
@@ -1753,10 +1859,20 @@
       var sweep = clamp(this.phaseProgress, 0, 1);
       var scanX = lerp(-21, 21, sweep);
 
+      var beamPulse = 1.0 + Math.sin(this.simElapsed * 8) * 0.3;
       scanBeam.enabled = true;
+      scanBeam.setLocalScale(8, 1, 0.15 * beamPulse);
       scanBeam.setLocalPosition(scanX, 1.5, 0);
       scanHullLine.enabled = true;
+      scanHullLine.setLocalScale(0.15 * beamPulse, 4, 0.05);
       scanHullLine.setLocalPosition(scanX, -0.2, -4.02);
+      scanHullLineStarboard.enabled = true;
+      scanHullLineStarboard.setLocalScale(0.15 * beamPulse, 4, 0.05);
+      scanHullLineStarboard.setLocalPosition(scanX, -0.2, 4.02);
+      scanGroundLine.enabled = true;
+      scanGroundLine.setLocalPosition(scanX, -0.85, 0);
+      scanBeamFan.enabled = true;
+      scanBeamFan.setLocalPosition(scanX, 0.3, 0);
       this.scanStatusText = this.currentPhase === 'FINAL-SURV'
         ? 'FINAL SCAN' + scanDots
         : 'SCANNING' + scanDots;
@@ -1765,7 +1881,7 @@
         var station = stationDefs[i];
         if (Math.abs(scanX - station.pos[0]) <= 2.7 && !this.scanHits[station.id]) {
           this.scanHits[station.id] = true;
-          this.stationPulseTimers[station.id] = 0.5;
+          this.stationPulseTimers[station.id] = 1.2;
           this.stationReadVisible[station.id] = true;
         }
       }
@@ -1863,6 +1979,78 @@
           window.cameraController.activeStationIdx === stationIndex;
         stationEntities[stationIndex].render.meshInstances[0].material =
           (isPulsing || isFocused) ? matMarkerActive : matMarker;
+
+        /* Station flash ring - expands and fades during pulse */
+        if (isPulsing) {
+          var pulseRemaining = this.stationPulseTimers[stationId];
+          var pulseProgress = 1.0 - (pulseRemaining / 1.2);
+          var ringScale = 0.6 + pulseProgress * 2.0;
+          stationFlashRings[stationIndex].enabled = true;
+          stationFlashRings[stationIndex].setLocalScale(ringScale, 0.04, ringScale);
+          stationFlashRings[stationIndex].setLocalPosition(
+            stationDefs[stationIndex].pos[0],
+            stationDefs[stationIndex].pos[1],
+            stationDefs[stationIndex].pos[2]
+          );
+        } else {
+          stationFlashRings[stationIndex].enabled = false;
+        }
+      }
+
+      /* ── Material stream from crane during CARGO-LOAD ── */
+      var streamActive = this.presentationAuthorized &&
+        this.state === 'RUNNING' &&
+        !this.mobActive &&
+        !this.paused &&
+        this.currentPhase === 'CARGO-LOAD';
+
+      if (streamActive) {
+        var hookPos = craneHook.getPosition();
+        var fillTop = cargoFillFloorY + (this.telemetry.cargoFillHeight || 0.1);
+        var bargeY = bargeRoot.getPosition().y;
+        var streamTop = hookPos.y;
+        var streamBottom = bargeY + fillTop + 0.1;
+        var streamHeight = Math.max(0.5, streamTop - streamBottom);
+        var streamMidY = (streamTop + streamBottom) / 2;
+        var wobble = Math.sin(this.simElapsed * 3.5) * 0.15;
+
+        craneStream.enabled = true;
+        craneStream.setPosition(hookPos.x + wobble, streamMidY, hookPos.z);
+        craneStream.setLocalScale(0.35, streamHeight, 0.35);
+
+        craneStreamInner.enabled = true;
+        craneStreamInner.setPosition(hookPos.x - wobble * 0.5, streamMidY + 0.2, hookPos.z + wobble * 0.3);
+        craneStreamInner.setLocalScale(0.2, streamHeight * 0.85, 0.2);
+
+        /* Splash cloud at impact point */
+        var splashPulse = 0.8 + Math.sin(this.simElapsed * 5.2) * 0.3;
+        splashCloud.enabled = true;
+        splashCloud.setPosition(hookPos.x + wobble * 0.5, streamBottom + 0.15, hookPos.z);
+        splashCloud.setLocalScale(1.4 * splashPulse, 0.5 * splashPulse, 1.4 * splashPulse);
+
+        /* Animate falling particles */
+        for (var pIdx = 0; pIdx < aggregateParticles.length; pIdx += 1) {
+          var p = aggregateParticles[pIdx];
+          p.entity.enabled = true;
+          var cyclePos = ((this.simElapsed * p.speed) + p.phase) % (Math.PI * 2);
+          var fallT = (cyclePos / (Math.PI * 2));
+          var pY = lerp(streamTop, streamBottom, fallT);
+          var scatter = fallT * 0.6;
+          p.entity.setPosition(
+            hookPos.x + p.offsetX * scatter + Math.sin(cyclePos * 2) * 0.1,
+            pY,
+            hookPos.z + p.offsetZ * scatter + Math.cos(cyclePos * 3) * 0.1
+          );
+          var tumble = this.simElapsed * p.speed * 180;
+          p.entity.setEulerAngles(tumble, tumble * 0.7, tumble * 0.5);
+        }
+      } else {
+        craneStream.enabled = false;
+        craneStreamInner.enabled = false;
+        splashCloud.enabled = false;
+        for (var pOff = 0; pOff < aggregateParticles.length; pOff += 1) {
+          aggregateParticles[pOff].entity.enabled = false;
+        }
       }
 
       this._updateWaterline(force);
