@@ -624,6 +624,71 @@
       stationFlashRings.push(flashRing);
     }
 
+    /* ── LiDAR sensor hubs (elevated sensor units that fire beams down) ── */
+    var matSensorHub = new pc.StandardMaterial();
+    matSensorHub.diffuse = new pc.Color(0.12, 0.14, 0.18);
+    matSensorHub.emissive = new pc.Color(0.02, 0.35, 0.42);
+    matSensorHub.emissiveIntensity = 0.8;
+    matSensorHub.metalness = 0.6;
+    matSensorHub.update();
+
+    var matSensorLens = new pc.StandardMaterial();
+    matSensorLens.diffuse = new pc.Color(0.04, 0.8, 0.9);
+    matSensorLens.emissive = new pc.Color(0.04, 0.7, 0.8);
+    matSensorLens.emissiveIntensity = 1.8;
+    matSensorLens.update();
+
+    var lidarSensorHeight = 8.5;
+    var lidarSensorDefs = [
+      { id: 'FORE', x: -18, z: 0, stationPair: ['FP', 'FS'] },
+      { id: 'MID',  x:   0, z: 0, stationPair: ['MP', 'MS'] },
+      { id: 'AFT',  x:  18, z: 0, stationPair: ['AP', 'AS'] }
+    ];
+    var lidarSensorEntities = [];
+
+    for (var sensorIdx = 0; sensorIdx < lidarSensorDefs.length; sensorIdx += 1) {
+      var sensorDef = lidarSensorDefs[sensorIdx];
+
+      var sensorHub = new pc.Entity('lidarHub_' + sensorDef.id);
+      sensorHub.addComponent('render', { type: 'box' });
+      sensorHub.setLocalScale(1.0, 0.5, 0.8);
+      sensorHub.setLocalPosition(sensorDef.x, lidarSensorHeight, sensorDef.z);
+      sensorHub.render.meshInstances[0].material = matSensorHub;
+      bargeRoot.addChild(sensorHub);
+
+      var sensorLens = new pc.Entity('lidarLens_' + sensorDef.id);
+      sensorLens.addComponent('render', { type: 'sphere' });
+      sensorLens.setLocalScale(0.25, 0.12, 0.25);
+      sensorLens.setLocalPosition(sensorDef.x, lidarSensorHeight - 0.3, sensorDef.z);
+      sensorLens.render.meshInstances[0].material = matSensorLens;
+      bargeRoot.addChild(sensorLens);
+
+      var sensorPole = new pc.Entity('lidarPole_' + sensorDef.id);
+      sensorPole.addComponent('render', { type: 'box' });
+      sensorPole.setLocalScale(0.12, lidarSensorHeight - 1.35, 0.12);
+      sensorPole.setLocalPosition(sensorDef.x, (lidarSensorHeight + 1.35) / 2, sensorDef.z);
+      sensorPole.render.meshInstances[0].material = matCrane;
+      bargeRoot.addChild(sensorPole);
+
+      lidarSensorEntities.push({
+        def: sensorDef,
+        hub: sensorHub,
+        lens: sensorLens
+      });
+    }
+
+    /* Barge hydrostatic constants for displacement calculation */
+    var bargeLength = 42;
+    var bargeBeam = 8;
+    var waterplaneArea = bargeLength * bargeBeam;
+    var waterDensityFresh = 62.3;
+    var lbsPerLongTon = 2240;
+
+    /* LiDAR beam color for renderLine */
+    var lidarBeamColor = new pc.Color(0.04, 0.82, 0.92, 1);
+    var lidarBeamColorDim = new pc.Color(0.02, 0.45, 0.52, 0.5);
+    var lidarBeamColorGreen = new pc.Color(0.1, 0.95, 0.4, 1);
+
     var cameraEntity = new pc.Entity('camera');
     cameraEntity.addComponent('camera', {
       clearColor: new pc.Color(0.03, 0.04, 0.08),
@@ -1292,6 +1357,14 @@
       this.stationReadVisible = {};
       this.scanStatusText = 'LOCKED';
 
+      /* LiDAR raycast state */
+      this.lidarActive = false;
+      this.lidarDraftValues = {};
+      this.lidarMeanDraft = 0;
+      this.lidarDisplacement = 0;
+      this.lidarBeamTargets = {};
+      this.draftingTriggered = false;
+
       this.maxCargoMass = 1800;
       this.maxCargoFillHeight = cargoFillMaxHeight;
       this.baseDisplacement = 1000;
@@ -1600,6 +1673,12 @@
       this.scanHitPhase = '';
       this.scanHits = {};
       this._resetScanState();
+      this.lidarActive = false;
+      this.lidarDraftValues = {};
+      this.lidarMeanDraft = 0;
+      this.lidarDisplacement = 0;
+      this.lidarBeamTargets = {};
+      this.draftingTriggered = false;
       window.freqSimStarted = false;
       this._setTelemetryFromProfile(this.initialProfile);
       this.telemetry.phaseId = 'IDLE';
@@ -1954,6 +2033,122 @@
       waterline.setPosition(0, -0.48 + rise, 0);
     };
 
+    /* ── Geometric LiDAR raycasts: compute draft from sensor→water distance ── */
+    SimulationController.prototype._performLidarRaycasts = function () {
+      var scanActive = this.state === 'RUNNING' &&
+        (this.currentPhase === 'PRE-SURVEY' || this.currentPhase === 'FINAL-SURV');
+      var monitorActive = this.state === 'RUNNING' && !scanActive;
+
+      this.lidarActive = scanActive || monitorActive;
+
+      if (!this.lidarActive) {
+        this.lidarMeanDraft = 0;
+        this.lidarDisplacement = 0;
+        return;
+      }
+
+      var bargeWorldY = bargeRoot.getPosition().y;
+      var waterSurfaceY = -0.5;
+      var totalDraft = 0;
+      var stationCount = 0;
+
+      for (var si = 0; si < lidarSensorDefs.length; si += 1) {
+        var sDef = lidarSensorDefs[si];
+        var sensorWorldY = bargeWorldY + lidarSensorHeight;
+
+        for (var pi = 0; pi < sDef.stationPair.length; pi += 1) {
+          var stId = sDef.stationPair[pi];
+          var stDef = null;
+          for (var di = 0; di < stationDefs.length; di += 1) {
+            if (stationDefs[di].id === stId) { stDef = stationDefs[di]; break; }
+          }
+          if (!stDef) continue;
+
+          var stationWorldY = bargeWorldY + stDef.pos[1];
+          var hullDepth = 2.82;
+          var draftValue = hullDepth + Math.max(0, waterSurfaceY - (bargeWorldY - hullDepth));
+          if (this.stationReadVisible[stId]) {
+            draftValue = this.telemetry.stations[stId];
+          }
+
+          this.lidarDraftValues[stId] = draftValue;
+          this.lidarBeamTargets[stId] = {
+            fromY: sensorWorldY,
+            toY: stationWorldY
+          };
+
+          totalDraft += draftValue;
+          stationCount += 1;
+        }
+      }
+
+      if (stationCount > 0) {
+        this.lidarMeanDraft = totalDraft / stationCount;
+        this.lidarDisplacement = (waterplaneArea * this.lidarMeanDraft * waterDensityFresh) / lbsPerLongTon;
+      }
+    };
+
+    /* ── Draw visible LiDAR beams using app.renderLine() ── */
+    SimulationController.prototype._drawLidarBeams = function () {
+      if (!this.lidarActive || !this.presentationAuthorized) {
+        return;
+      }
+
+      var scanPhase = this.currentPhase === 'PRE-SURVEY' || this.currentPhase === 'FINAL-SURV';
+      var bargePos = bargeRoot.getPosition();
+
+      for (var si = 0; si < lidarSensorDefs.length; si += 1) {
+        var sDef = lidarSensorDefs[si];
+        var sensorWorldX = bargePos.x + sDef.x;
+        var sensorWorldY = bargePos.y + lidarSensorHeight;
+        var sensorWorldZ = bargePos.z + sDef.z;
+
+        for (var pi = 0; pi < sDef.stationPair.length; pi += 1) {
+          var stId = sDef.stationPair[pi];
+          if (!this.stationReadVisible[stId] && scanPhase) continue;
+
+          var stDef = null;
+          for (var di = 0; di < stationDefs.length; di += 1) {
+            if (stationDefs[di].id === stId) { stDef = stationDefs[di]; break; }
+          }
+          if (!stDef) continue;
+
+          var stWorldX = bargePos.x + stDef.pos[0];
+          var stWorldY = bargePos.y + stDef.pos[1];
+          var stWorldZ = bargePos.z + stDef.pos[2];
+
+          var from = new pc.Vec3(sensorWorldX, sensorWorldY, sensorWorldZ);
+          var to = new pc.Vec3(stWorldX, stWorldY, stWorldZ);
+
+          var beamColor = this.currentPhase === 'FINAL-SURV' ? lidarBeamColorGreen : lidarBeamColor;
+          if (!scanPhase) beamColor = lidarBeamColorDim;
+
+          app.renderLine(from, to, beamColor);
+          var from2 = new pc.Vec3(sensorWorldX + 0.03, sensorWorldY, sensorWorldZ);
+          var to2 = new pc.Vec3(stWorldX + 0.03, stWorldY, stWorldZ);
+          app.renderLine(from2, to2, beamColor);
+
+          if (scanPhase) {
+            var waterHit = new pc.Vec3(stWorldX, -0.5, stWorldZ);
+            app.renderLine(to, waterHit, lidarBeamColorDim);
+          }
+        }
+      }
+
+      var lensPulse = scanPhase ? (1.2 + Math.sin(this.simElapsed * 6) * 0.8) : 0.6;
+      matSensorLens.emissiveIntensity = lensPulse;
+      matSensorLens.update();
+    };
+
+    /* ── Procedure trigger: auto-start drafting when cargo reaches target ── */
+    SimulationController.prototype._checkDraftingTrigger = function () {
+      if (this.draftingTriggered) return;
+      if (this.currentPhase !== 'CARGO-LOAD') return;
+      if (this.telemetry.cargoMass >= this.maxCargoMass * 0.95) {
+        this.draftingTriggered = true;
+      }
+    };
+
     SimulationController.prototype._updateScene = function (force) {
       if (this.paused && !force) {
         return;
@@ -2204,6 +2399,9 @@
         setText('telCargo', '0 t');
         setText('telGm', formatFeet(this.initialProfile.gm));
         setText('telStatus', 'NOMINAL');
+        setText('telScan', this.presentationAuthorized ? 'READY' : 'LOCKED');
+        setText('telMeanDraft', '--');
+        setText('telDisplacement', '--');
         setText('telElapsed', '00:00');
         return;
       }
@@ -2226,6 +2424,9 @@
       setText('telCargo', formatTons(this.telemetry.cargoMass));
       setText('telGm', formatFeet(this.telemetry.gm));
       setText('telStatus', this.telemetry.status === 'EMERGENCY_STOP' ? 'EMERGENCY_STOP' : this.telemetry.status);
+      setText('telScan', this.scanStatusText);
+      setText('telMeanDraft', this.lidarMeanDraft > 0 ? formatFeet(this.lidarMeanDraft) : '--');
+      setText('telDisplacement', this.lidarDisplacement > 0 ? (Math.round(this.lidarDisplacement) + ' LT') : '--');
       setText('telElapsed', formatTime(this.simElapsed));
     };
 
@@ -2357,7 +2558,10 @@
 
     SimulationController.prototype._render = function (force) {
       this._updateCraneData(this.phaseProgress || 0);
+      this._performLidarRaycasts();
       this._updateScene(force);
+      this._drawLidarBeams();
+      this._checkDraftingTrigger();
       this._updateStatus();
       this._updateButtons();
       this._updateTelemetryUi();
