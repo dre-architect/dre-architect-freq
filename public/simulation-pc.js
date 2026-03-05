@@ -2146,6 +2146,12 @@
       if (this.currentPhase !== 'CARGO-LOAD') return;
       if (this.telemetry.cargoMass >= this.maxCargoMass * 0.95) {
         this.draftingTriggered = true;
+        /* Weight-based trigger: force phase transition to TRIM-CORR
+           instead of waiting for the fixed timer to expire.
+           This mirrors the targetWeight pattern from the BargeDigitalTwin
+           controller — loading ends when cargo reaches capacity, not
+           when an arbitrary clock runs out. */
+        this.phaseElapsed = this.phases[this.phaseIndex].duration;
       }
     };
 
