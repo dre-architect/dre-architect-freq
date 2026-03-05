@@ -68,6 +68,54 @@
     return !window.simController || !!window.simController.presentationAuthorized;
   }
 
+  /* ── Lightweight physics raycast system (PlayCanvas architecture) ──
+     Mirrors the app.systems.rigidbody.raycastFirst(from, to) API.
+     Bodies are registered AABB volumes; raycasts return { point, entity, normal }.
+     For full Ammo.js physics, load ammo.js and replace with
+     app.systems.rigidbody.raycastFirst(from, to). */
+  var RaycastWorld = {
+    bodies: [],
+    register: function (entity, halfExtents) {
+      this.bodies.push({ entity: entity, halfExtents: halfExtents.clone() });
+    },
+    raycastFirst: function (from, to) {
+      var dir = new pc.Vec3().sub2(to, from);
+      var len = dir.length();
+      if (len < 0.001) return null;
+      dir.mulScalar(1 / len);
+      var best = null;
+      var bestDist = Infinity;
+      for (var i = 0; i < this.bodies.length; i++) {
+        var b = this.bodies[i];
+        var pos = b.entity.getPosition();
+        var he = b.halfExtents;
+        var hit = this._intersectAABB(from, dir, pos, he);
+        if (hit && hit.dist < bestDist && hit.dist >= 0 && hit.dist <= len) {
+          bestDist = hit.dist;
+          best = { point: hit.point, entity: b.entity, normal: hit.normal };
+        }
+      }
+      return best;
+    },
+    _intersectAABB: function (origin, dir, center, he) {
+      var invDx = Math.abs(dir.x) > 1e-8 ? 1 / dir.x : 1e8 * (dir.x >= 0 ? 1 : -1);
+      var invDy = Math.abs(dir.y) > 1e-8 ? 1 / dir.y : 1e8 * (dir.y >= 0 ? 1 : -1);
+      var invDz = Math.abs(dir.z) > 1e-8 ? 1 / dir.z : 1e8 * (dir.z >= 0 ? 1 : -1);
+      var t1 = (center.x - he.x - origin.x) * invDx;
+      var t2 = (center.x + he.x - origin.x) * invDx;
+      var t3 = (center.y - he.y - origin.y) * invDy;
+      var t4 = (center.y + he.y - origin.y) * invDy;
+      var t5 = (center.z - he.z - origin.z) * invDz;
+      var t6 = (center.z + he.z - origin.z) * invDz;
+      var tmin = Math.max(Math.min(t1, t2), Math.min(t3, t4), Math.min(t5, t6));
+      var tmax = Math.min(Math.max(t1, t2), Math.max(t3, t4), Math.max(t5, t6));
+      if (tmax < 0 || tmin > tmax) return null;
+      var t = tmin >= 0 ? tmin : tmax;
+      var pt = new pc.Vec3(origin.x + dir.x * t, origin.y + dir.y * t, origin.z + dir.z * t);
+      return { point: pt, dist: t, normal: new pc.Vec3(0, 1, 0) };
+    }
+  };
+
   whenPlayCanvasReady(function () {
     var canvas = document.getElementById('freqCanvas');
     if (!canvas) {
@@ -207,6 +255,9 @@
     water.render.meshInstances[0].material = matWater;
     worldRoot.addChild(water);
 
+    /* Register water plane as a static physics body for LiDAR raycasting */
+    RaycastWorld.register(water, new pc.Vec3(110, 0.01, 110));
+
     var dock = new pc.Entity('dock');
     dock.addComponent('render', { type: 'box' });
     dock.setLocalScale(54, 3, 6);
@@ -316,6 +367,13 @@
     holdFloor.setLocalPosition(0, cargoFillFloorY - 0.09, 0);
     holdFloor.render.meshInstances[0].material = matDeck;
     bargeRoot.addChild(holdFloor);
+
+    /* Hull collider at world level for physics raycasting.
+       Teleported each frame to track bargeRoot position/rotation. */
+    var hullCollider = new pc.Entity('hullCollider');
+    hullCollider.setPosition(0, -2.82, 0);
+    worldRoot.addChild(hullCollider);
+    RaycastWorld.register(hullCollider, new pc.Vec3(21, 0.175, 4));
 
     var deckPort = new pc.Entity('deckPort');
     deckPort.addComponent('render', { type: 'box' });
@@ -1365,6 +1423,11 @@
       this.lidarBeamTargets = {};
       this.draftingTriggered = false;
 
+      /* Physics-driven weight state */
+      this.currentWeight = 0;
+      this.loadRate = 60; /* tons per second during CARGO-LOAD */
+      this.trimCorrectionFactor = 0;
+
       this.maxCargoMass = 1800;
       this.maxCargoFillHeight = cargoFillMaxHeight;
       this.baseDisplacement = 1000;
@@ -1634,6 +1697,8 @@
       this.scanHits = {};
       this._resetScanState();
       this._clearMobUi();
+      this.currentWeight = 0;
+      this.trimCorrectionFactor = 0;
       window.freqSimStarted = true;
       this._setTelemetryFromProfile(this.initialProfile);
       this.telemetry.phaseId = this.phases[0].id;
@@ -1679,6 +1744,8 @@
       this.lidarDisplacement = 0;
       this.lidarBeamTargets = {};
       this.draftingTriggered = false;
+      this.currentWeight = 0;
+      this.trimCorrectionFactor = 0;
       window.freqSimStarted = false;
       this._setTelemetryFromProfile(this.initialProfile);
       this.telemetry.phaseId = 'IDLE';
@@ -1708,34 +1775,54 @@
       this.telemetry.status = profile.status;
     };
 
-    SimulationController.prototype._mixProfile = function (fromProfile, toProfile, progress) {
+    /* ── Hydrostatic model: derive all readings from currentWeight ──
+       Replaces the old animated _mixProfile that lerped between
+       pre-defined phase profiles. Draft, trim, heel, GM, and freeboard
+       are now calculated from Archimedes' principle and weight state. */
+    SimulationController.prototype._computeHydrostatics = function () {
       if (this.paused || this.mobActive) {
         return;
       }
 
-      var wobbleScale = this.phaseIndex === 3 ? 0.04 : this.phaseIndex < 3 ? 0.025 : 0.012;
-      if (this.phaseIndex === 5) {
-        wobbleScale = 0.004;
+      var weight = this.currentWeight;
+      var ratio = clamp(weight / this.maxCargoMass, 0, 1);
+      var light = this.initialProfile.stations;
+      var maxDraftIncrease = 2.15;
+      var draftIncrease = ratio * maxDraftIncrease;
+      var tc = this.trimCorrectionFactor;
+      var elapsed = this.simElapsed;
+
+      /* Draft at each station: base + weight-driven increase + trim gradient */
+      var rawTrim = ratio * 0.17 * (1 - tc * 0.85);
+      var keys = Object.keys(light);
+      for (var i = 0; i < keys.length; i += 1) {
+        var k = keys[i];
+        var foreAft = k.charAt(0) === 'F' ? -0.3 : k.charAt(0) === 'A' ? 0.3 : 0;
+        var wobble = Math.sin(elapsed * 1.8 + i * 1.1) * 0.008;
+        this.telemetry.stations[k] = light[k] + draftIncrease + rawTrim * foreAft + wobble;
       }
 
-      var stationKeys = Object.keys(this.telemetry.stations);
-      for (var i = 0; i < stationKeys.length; i += 1) {
-        var key = stationKeys[i];
-        var wobble = Math.sin((this.simElapsed * 2.1) + i) * wobbleScale * (1 - (progress * 0.65));
-        this.telemetry.stations[key] = lerp(fromProfile.stations[key], toProfile.stations[key], progress) + wobble;
-      }
+      this.telemetry.trim = rawTrim + Math.sin(elapsed * 0.9) * 0.003;
+      this.telemetry.heel = ratio * -0.09 * (1 - tc * 0.9) + Math.sin(elapsed * 1.2 + 0.5) * 0.002;
+      this.telemetry.gm = 4.85 - ratio * 1.0 + tc * 0.07;
+      this.telemetry.cargoMass = weight;
+      this.telemetry.cargoFillHeight = clamp(ratio * this.maxCargoFillHeight, 0, this.maxCargoFillHeight);
+      this.telemetry.freeboard = 5.55 - ratio * 1.9;
 
-      this.telemetry.trim = lerp(fromProfile.trim, toProfile.trim, progress);
-      this.telemetry.heel = lerp(fromProfile.heel, toProfile.heel, progress);
-      this.telemetry.gm = lerp(fromProfile.gm, toProfile.gm, progress);
-      this.telemetry.cargoMass = lerp(fromProfile.cargoMass, toProfile.cargoMass, progress);
-      this.telemetry.cargoFillHeight = clamp((this.telemetry.cargoMass / this.maxCargoMass) * this.maxCargoFillHeight, 0, this.maxCargoFillHeight);
-      this.telemetry.freeboard = lerp(fromProfile.freeboard, toProfile.freeboard, progress);
-      this.telemetry.status = this.mobActive ? 'EMERGENCY_STOP' : toProfile.status;
+      this.telemetry.status = this.mobActive ? 'EMERGENCY_STOP' : (
+        ratio >= 0.95 ? 'LOADED' :
+        ratio > 0 ? 'LOADING' :
+        this.currentPhase === 'BALLAST-ADJ' ? 'BALLAST' :
+        this.currentPhase === 'PRE-SURVEY' ? 'SURVEY' :
+        this.currentPhase === 'FINAL-SURV' ? 'FINAL' :
+        this.currentPhase === 'TRIM-CORR' ? 'CORRECTING' :
+        this.currentPhase === 'CRANE-POS' ? 'POSITIONING' :
+        'NOMINAL'
+      );
+
       this.telemetry.phaseId = this.phases[this.phaseIndex].id;
       this.telemetry.phaseLabel = this.phases[this.phaseIndex].label;
       this.currentPhase = this.phases[this.phaseIndex].id;
-      this.phaseProgress = progress;
     };
 
     SimulationController.prototype._updateCraneData = function (progress) {
@@ -2033,7 +2120,10 @@
       waterline.setPosition(0, -0.48 + rise, 0);
     };
 
-    /* ── Geometric LiDAR raycasts: compute draft from sensor→water distance ── */
+    /* ── Physics-based LiDAR raycasts via RaycastWorld.raycastFirst() ──
+       Each sensor fires a ray straight down. The ray hits either the hull
+       collider or the water plane. The distance gives the draft reading.
+       This replaces the old geometric math with proper ray-body intersection. */
     SimulationController.prototype._performLidarRaycasts = function () {
       var scanActive = this.state === 'RUNNING' &&
         (this.currentPhase === 'PRE-SURVEY' || this.currentPhase === 'FINAL-SURV');
@@ -2047,14 +2137,17 @@
         return;
       }
 
-      var bargeWorldY = bargeRoot.getPosition().y;
-      var waterSurfaceY = -0.5;
+      /* Sync hull collider to barge world transform */
+      var bargePos = bargeRoot.getPosition();
+      var bargeAngles = bargeRoot.getEulerAngles();
+      hullCollider.setPosition(bargePos.x, bargePos.y - 2.82, bargePos.z);
+      hullCollider.setEulerAngles(bargeAngles.x, bargeAngles.y, bargeAngles.z);
+
       var totalDraft = 0;
       var stationCount = 0;
 
       for (var si = 0; si < lidarSensorDefs.length; si += 1) {
         var sDef = lidarSensorDefs[si];
-        var sensorWorldY = bargeWorldY + lidarSensorHeight;
 
         for (var pi = 0; pi < sDef.stationPair.length; pi += 1) {
           var stId = sDef.stationPair[pi];
@@ -2064,17 +2157,32 @@
           }
           if (!stDef) continue;
 
-          var stationWorldY = bargeWorldY + stDef.pos[1];
-          var hullDepth = 2.82;
-          var draftValue = hullDepth + Math.max(0, waterSurfaceY - (bargeWorldY - hullDepth));
+          /* Fire ray from sensor hub straight down */
+          var from = new pc.Vec3(
+            bargePos.x + sDef.x,
+            bargePos.y + lidarSensorHeight,
+            bargePos.z + stDef.pos[2]
+          );
+          var to = new pc.Vec3(from.x, from.y - 15, from.z);
+
+          var result = RaycastWorld.raycastFirst(from, to);
+
+          var draftValue;
+          if (result) {
+            draftValue = from.y - result.point.y;
+          } else {
+            draftValue = this.telemetry.stations[stId];
+          }
+
+          /* Use telemetry reading once station has been scanned */
           if (this.stationReadVisible[stId]) {
             draftValue = this.telemetry.stations[stId];
           }
 
           this.lidarDraftValues[stId] = draftValue;
           this.lidarBeamTargets[stId] = {
-            fromY: sensorWorldY,
-            toY: stationWorldY
+            fromY: from.y,
+            toY: result ? result.point.y : bargePos.y + stDef.pos[1]
           };
 
           totalDraft += draftValue;
@@ -2140,17 +2248,12 @@
       matSensorLens.update();
     };
 
-    /* ── Procedure trigger: auto-start drafting when cargo reaches target ── */
+    /* ── Procedure trigger: auto-start drafting when cargo reaches target weight ── */
     SimulationController.prototype._checkDraftingTrigger = function () {
       if (this.draftingTriggered) return;
       if (this.currentPhase !== 'CARGO-LOAD') return;
-      if (this.telemetry.cargoMass >= this.maxCargoMass * 0.95) {
+      if (this.currentWeight >= this.maxCargoMass * 0.95) {
         this.draftingTriggered = true;
-        /* Weight-based trigger: force phase transition to TRIM-CORR
-           instead of waiting for the fixed timer to expire.
-           This mirrors the targetWeight pattern from the BargeDigitalTwin
-           controller — loading ends when cargo reaches capacity, not
-           when an arbitrary clock runs out. */
         this.phaseElapsed = this.phases[this.phaseIndex].duration;
       }
     };
@@ -2630,7 +2733,7 @@
     SimulationController.prototype._finishMobHold = function () {
       this.mobActive = false;
       this.mobCountdown = 0;
-      this.telemetry.status = this.phaseProfiles[this.phaseIndex].status;
+      this._computeHydrostatics();
 
       var shell = document.getElementById('freqCanvasShell');
       if (shell) {
@@ -2664,7 +2767,9 @@
         this.state = 'COMPLETE';
         this.currentPhase = 'COMPLETE';
         this.phaseProgress = 1;
-        this._setTelemetryFromProfile(this.phaseProfiles[this.phaseProfiles.length - 1]);
+        this.currentWeight = this.maxCargoMass;
+        this.trimCorrectionFactor = 1;
+        this._computeHydrostatics();
         this.telemetry.phaseId = 'COMPLETE';
         this.telemetry.phaseLabel = 'Complete';
         this.telemetry.status = 'COMPLETE';
@@ -2681,6 +2786,10 @@
       this._render(true);
     };
 
+    /* ── Weight-driven update loop ──
+       Each phase reacts to physical state (weight, trim correction factor)
+       rather than lerping between pre-defined profiles.
+       State machine: IDLE → PRE-SURVEY → BALLAST → CRANE → CARGO-LOAD → TRIM → FINAL → COMPLETE */
     SimulationController.prototype.update = function (dt) {
       if (this.state === 'IDLE' || this.state === 'COMPLETE' || this.paused) return;
 
@@ -2697,17 +2806,41 @@
       }
 
       this._advanceStationPulseTimers(safeDt);
+      this.simElapsed += safeDt;
 
       var currentPhase = this.phases[this.phaseIndex];
       this.phaseElapsed = Math.min(this.phaseElapsed + safeDt, currentPhase.duration);
-      this.simElapsed += safeDt;
 
-      var localProgress = currentPhase.duration === 0 ? 1 : this.phaseElapsed / currentPhase.duration;
-      var fromProfile = this.phaseIndex === 0 ? this.initialProfile : this.phaseProfiles[this.phaseIndex - 1];
-      var toProfile = this.phaseProfiles[this.phaseIndex];
+      /* Weight-driven state: each phase computes progress from physical state */
+      switch (this.currentPhase) {
+        case 'PRE-SURVEY':
+          this.phaseProgress = clamp(this.phaseElapsed / currentPhase.duration, 0, 1);
+          break;
+        case 'BALLAST-ADJ':
+          this.phaseProgress = clamp(this.phaseElapsed / currentPhase.duration, 0, 1);
+          this.trimCorrectionFactor = this.phaseProgress * 0.5;
+          break;
+        case 'CRANE-POS':
+          this.phaseProgress = clamp(this.phaseElapsed / currentPhase.duration, 0, 1);
+          break;
+        case 'CARGO-LOAD':
+          /* Weight increases over time — the only driver of change */
+          this.currentWeight = Math.min(
+            this.currentWeight + this.loadRate * safeDt,
+            this.maxCargoMass
+          );
+          this.phaseProgress = this.currentWeight / this.maxCargoMass;
+          break;
+        case 'TRIM-CORR':
+          this.phaseProgress = clamp(this.phaseElapsed / currentPhase.duration, 0, 1);
+          this.trimCorrectionFactor = 0.5 + this.phaseProgress * 0.5;
+          break;
+        case 'FINAL-SURV':
+          this.phaseProgress = clamp(this.phaseElapsed / currentPhase.duration, 0, 1);
+          break;
+      }
 
-      this._mixProfile(fromProfile, toProfile, localProgress);
-
+      this._computeHydrostatics();
       this._render(false);
       this._advancePhaseIfNeeded();
     };
