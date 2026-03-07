@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FREQ AI Platform — Autonomous Draft Survey Intelligence for Maritime Cargo Operations">
+  <title>Platform — FREQ AI</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#080C18; --bg2:#0D1424; --card:#111827; --border:#1E293B;
+      --purple:#7C3AED; --teal:#06B6D4; --green:#10B981;
+      --amber:#F59E0B; --red:#EF4444;
+      --text:#F1F5F9; --muted:#94A3B8; --muted2:#64748B;
+      --font-head:'Space Grotesk',sans-serif;
+      --font-body:'IBM Plex Sans',sans-serif;
+      --font-mono:'JetBrains Mono',monospace;
+    }
+    html { scroll-behavior:smooth; }
+    body { background:var(--bg); color:var(--text); font-family:var(--font-body); line-height:1.6; }
+
+    /* NAV */
+    .site-nav { display:flex; align-items:center; justify-content:space-between; padding:1rem 2rem; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:100; }
+    .nav-logo { font-family:var(--font-head); font-size:1.5rem; font-weight:700; color:var(--text); text-decoration:none; letter-spacing:-0.02em; }
+    .nav-logo .accent { color:var(--purple); }
+    .nav-links { list-style:none; display:flex; gap:1.5rem; }
+    .nav-links a { color:var(--muted); text-decoration:none; font-family:var(--font-head); font-size:0.875rem; font-weight:500; transition:color .2s; }
+    .nav-links a:hover, .nav-links a.active { color:var(--teal); }
+    .nav-toggle { display:none; background:none; border:none; color:var(--text); font-size:1.5rem; cursor:pointer; }
+    @media(max-width:768px) {
+      .nav-toggle { display:block; }
+      .nav-links { display:none; flex-direction:column; position:absolute; top:100%; left:0; right:0; background:var(--bg); border-bottom:1px solid var(--border); padding:1rem 2rem; gap:1rem; }
+      .nav-links.open { display:flex; }
+    }
+
+    /* HERO */
+    .page-hero { padding:4rem 2rem 3rem; text-align:center; background:var(--bg2); border-bottom:1px solid var(--border); position:relative; overflow:hidden; }
+    .page-hero::before { content:''; position:absolute; inset:0; background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(124,58,237,0.06) 39px, rgba(124,58,237,0.06) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(124,58,237,0.06) 39px, rgba(124,58,237,0.06) 40px);
+      pointer-events:none; }
+    .page-hero h1 { font-family:var(--font-head); font-size:clamp(1.5rem,4vw,2.5rem); font-weight:700; margin-bottom:0.75rem; position:relative; }
+    .page-hero p { color:var(--muted); font-family:var(--font-mono); font-size:0.875rem; letter-spacing:0.05em; position:relative; }
+
+    /* VIEW PILLS */
+    .view-pills { display:flex; justify-content:center; gap:0.5rem; padding:1.25rem 1rem; flex-wrap:wrap; background:var(--bg); border-bottom:1px solid var(--border); }
+    .view-pills button { font-family:var(--font-mono); font-size:0.72rem; padding:0.4rem 0.9rem; background:var(--card); border:1px solid var(--border); color:var(--muted); border-radius:999px; cursor:pointer; transition:all .2s; }
+    .view-pills button:hover { border-color:var(--teal); color:var(--teal); }
+
+    /* SIM SECTION */
+    #sim-section { background:var(--bg); padding:0; }
+
+    /* TOP BAR */
+    .sim-topbar { display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1.25rem; background:var(--bg2); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .dot-idle { background:var(--muted2); }
+    .dot-running { background:var(--green); animation:pulse 1s infinite; }
+    .dot-paused { background:var(--amber); }
+    .dot-complete { background:var(--teal); }
+    .dot-alert { background:var(--red); animation:pulse-fast .4s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes pulse-fast { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .status-label { font-family:var(--font-mono); font-size:0.72rem; color:var(--muted); margin-right:auto; }
+    .sim-btn { font-family:var(--font-mono); font-size:0.68rem; padding:0.35rem 0.75rem; border:1px solid var(--border); background:var(--card); color:var(--text); cursor:pointer; border-radius:4px; transition:all .15s; letter-spacing:0.03em; }
+    .sim-btn:hover { border-color:var(--teal); color:var(--teal); }
+    .sim-btn:disabled { opacity:.35; cursor:default; }
+    .sim-btn.primary { background:var(--purple); border-color:var(--purple); color:#fff; }
+    .sim-btn.primary:hover { background:#6D28D9; }
+    .sim-btn.danger { border-color:var(--red); color:var(--red); }
+    .sim-btn.danger:hover { background:var(--red); color:#fff; }
+    .spd-btn { font-family:var(--font-mono); font-size:0.65rem; padding:0.25rem 0.5rem; background:transparent; border:1px solid var(--border); color:var(--muted2); cursor:pointer; border-radius:3px; }
+    .spd-btn.active { border-color:var(--teal); color:var(--teal); }
+    .spd-lbl { font-family:var(--font-mono); font-size:0.6rem; color:var(--muted2); margin-left:0.5rem; }
+
+    /* CAM BAR */
+    .cam-bar { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1.25rem; background:var(--bg); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .cam-btn { font-family:var(--font-mono); font-size:0.65rem; padding:0.25rem 0.6rem; background:transparent; border:1px solid var(--border); color:var(--muted2); cursor:pointer; border-radius:3px; transition:all .15s; }
+    .cam-btn:hover { border-color:var(--muted); color:var(--muted); }
+    .cam-btn.active { border-color:var(--teal); color:var(--teal); background:rgba(6,182,212,0.08); }
+    .cam-label { font-family:var(--font-mono); font-size:0.6rem; color:var(--muted2); margin-left:auto; }
+
+    /* MAIN GRID */
+    .sim-grid { display:grid; grid-template-columns:1fr 300px; }
+    @media(max-width:900px) { .sim-grid { grid-template-columns:1fr; } }
+
+    /* CESIUM */
+    #cesiumContainer { width:100%; height:540px; background:var(--bg); position:relative; }
+    @media(max-width:768px) { #cesiumContainer { height:380px; } }
+    .cesium-viewer-toolbar, .cesium-viewer-animationContainer, .cesium-viewer-timelineContainer,
+    .cesium-viewer-bottom, .cesium-widget-credits, .cesium-credit-logoContainer,
+    .cesium-credit-textContainer { display:none !important; }
+    .cesium-viewer { font-family:var(--font-mono) !important; }
+
+    /* HUD */
+    #hud { position:absolute; top:12px; right:12px; background:rgba(8,12,24,0.88); border:1px solid var(--border); border-radius:6px; padding:10px 14px; pointer-events:none; z-index:10; min-width:185px; }
+    .hud-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding-bottom:5px; border-bottom:1px solid var(--border); }
+    .hud-title { font-family:var(--font-mono); font-size:0.72rem; font-weight:700; color:var(--teal); }
+    .hud-phase { font-family:var(--font-mono); font-size:0.62rem; color:var(--muted); }
+    .hud-row { display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:0.68rem; padding:1.5px 0; }
+    .hud-row .lbl { color:var(--muted2); }
+    .hud-row .val { color:var(--text); }
+    .hud-sep { border:none; border-top:1px solid var(--border); margin:4px 0; }
+    @media(max-width:768px) { #hud { top:8px; right:8px; min-width:155px; padding:8px 10px; } .hud-row { font-size:0.6rem; } }
+
+    /* STATION CARD */
+    #stationCard { position:absolute; bottom:14px; left:14px; background:rgba(8,12,24,0.92); border:1px solid var(--teal); border-radius:6px; padding:12px 16px; z-index:10; display:none; min-width:220px; }
+    .sc-title { font-family:var(--font-mono); font-size:0.72rem; color:var(--teal); margin-bottom:6px; }
+    .sc-row { font-family:var(--font-mono); font-size:0.75rem; margin:3px 0; }
+    .sc-row .lbl { color:var(--muted2); }
+    .sc-row .val { color:var(--text); font-weight:700; }
+    .sc-nav { display:flex; gap:0.5rem; margin-top:8px; }
+    .sc-nav button { font-family:var(--font-mono); font-size:0.62rem; padding:0.2rem 0.5rem; background:var(--card); border:1px solid var(--border); color:var(--muted); cursor:pointer; border-radius:3px; }
+    .sc-nav button:hover { border-color:var(--teal); color:var(--teal); }
+
+    /* MANUAL PANEL */
+    .manual-panel { background:var(--bg2); border-left:1px solid var(--border); padding:1rem; display:flex; flex-direction:column; }
+    @media(max-width:900px) { .manual-panel { border-left:none; border-top:1px solid var(--border); } }
+    .mp-header { font-family:var(--font-mono); font-size:0.68rem; color:var(--amber); margin-bottom:0.75rem; padding-bottom:0.5rem; border-bottom:1px solid var(--border); letter-spacing:0.04em; }
+    .step-num { font-family:var(--font-mono); font-size:0.6rem; color:var(--muted2); margin-bottom:0.35rem; }
+    .step-title { font-family:var(--font-head); font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.5rem; }
+    .step-body { font-size:0.8rem; color:var(--muted); line-height:1.5; margin-bottom:0.75rem; }
+    .step-warn { font-family:var(--font-mono); font-size:0.68rem; padding:0.4rem 0.6rem; border-radius:4px; margin-bottom:0.75rem; }
+    .step-warn.red { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:var(--red); }
+    .step-warn.amber { background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:var(--amber); }
+    .mp-nav { display:flex; align-items:center; gap:0.5rem; margin-top:auto; padding-top:0.75rem; border-top:1px solid var(--border); }
+    .mp-nav button { font-family:var(--font-mono); font-size:0.62rem; padding:0.3rem 0.6rem; background:var(--card); border:1px solid var(--border); color:var(--muted); cursor:pointer; border-radius:3px; }
+    .mp-nav button:hover:not(:disabled) { border-color:var(--teal); color:var(--teal); }
+    .mp-nav button:disabled { opacity:.35; cursor:default; }
+    .mp-nav .step-ind { font-family:var(--font-mono); font-size:0.58rem; color:var(--muted2); margin-left:auto; }
+
+    /* PHASE BAR */
+    .phase-section { padding:1rem 1.25rem; background:var(--bg2); border-top:1px solid var(--border); }
+    #phaseTrack { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:0.75rem; }
+    .pdot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:0.65rem; font-weight:700; border:2px solid var(--border); color:var(--muted2); background:var(--bg); flex-shrink:0; }
+    .pdot.active { border-color:var(--teal); color:var(--teal); background:rgba(6,182,212,0.1); }
+    .pdot.done { border-color:var(--green); color:var(--green); background:rgba(16,185,129,0.1); }
+    .pline { width:32px; height:2px; background:var(--border); flex-shrink:0; }
+    .pline.done { background:var(--green); }
+    #pdName { font-family:var(--font-mono); font-size:0.72rem; color:var(--text); text-align:center; }
+    #pdText { font-family:var(--font-body); font-size:0.78rem; color:var(--muted); text-align:center; margin-top:0.25rem; }
+
+    /* MOB BANNER */
+    #mobBanner { display:none; align-items:center; justify-content:center; gap:1rem; padding:0.75rem 1.25rem; background:rgba(239,68,68,0.12); border:1px solid var(--red); font-family:var(--font-mono); font-size:0.78rem; color:var(--red); font-weight:700; letter-spacing:0.04em; }
+
+    /* MOB TRIGGER */
+    .mob-trigger { display:flex; justify-content:center; padding:0.75rem 1.25rem; background:var(--bg); border-top:1px solid var(--border); }
+
+    /* COMPLETION CARD */
+    #completionCard { display:none; margin:1.5rem auto; max-width:560px; background:var(--card); border:1px solid var(--green); border-radius:8px; padding:1.5rem 2rem; }
+    .cc-title { font-family:var(--font-head); font-size:1.1rem; font-weight:700; color:var(--green); margin-bottom:1rem; text-align:center; }
+    .cc-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem 1.5rem; margin-bottom:1rem; }
+    .cc-row { display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:0.75rem; }
+    .cc-row .lbl { color:var(--muted2); }
+    .cc-row .val { color:var(--text); font-weight:500; }
+    .cc-vs { font-family:var(--font-mono); font-size:0.7rem; color:var(--muted); text-align:center; padding-top:0.75rem; border-top:1px solid var(--border); line-height:1.8; }
+    .cc-vs strong { color:var(--teal); font-weight:700; }
+
+    /* CAPABILITY CARDS */
+    .cap-section { padding:4rem 2rem; background:var(--bg); }
+    .cap-section h2 { font-family:var(--font-head); font-size:1.5rem; font-weight:700; text-align:center; margin-bottom:0.5rem; }
+    .cap-section .sub { font-family:var(--font-mono); font-size:0.78rem; color:var(--muted); text-align:center; margin-bottom:2.5rem; }
+    .cap-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.25rem; max-width:1000px; margin:0 auto; }
+    @media(max-width:768px) { .cap-grid { grid-template-columns:1fr; } }
+    .cap-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1.5rem; transition:border-color .2s; }
+    .cap-card:hover { border-color:var(--purple); }
+    .cap-icon { font-size:1.5rem; margin-bottom:0.75rem; }
+    .cap-card h3 { font-family:var(--font-head); font-size:0.95rem; font-weight:600; margin-bottom:0.5rem; }
+    .cap-card p { font-size:0.82rem; color:var(--muted); line-height:1.5; }
+
+    /* USE CASE CARDS */
+    .uc-section { padding:4rem 2rem; background:var(--bg2); border-top:1px solid var(--border); }
+    .uc-section h2 { font-family:var(--font-head); font-size:1.5rem; font-weight:700; text-align:center; margin-bottom:2.5rem; }
+    .uc-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1.25rem; max-width:800px; margin:0 auto; }
+    @media(max-width:768px) { .uc-grid { grid-template-columns:1fr; } }
+    .uc-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1.5rem; text-decoration:none; color:var(--text); transition:border-color .2s; display:block; }
+    .uc-card:hover { border-color:var(--teal); }
+    .uc-card h3 { font-family:var(--font-head); font-size:0.95rem; font-weight:600; margin-bottom:0.35rem; }
+    .uc-card p { font-size:0.82rem; color:var(--muted); line-height:1.5; margin-bottom:0.5rem; }
+    .uc-card .arrow { font-family:var(--font-mono); font-size:0.72rem; color:var(--teal); }
+
+    /* FOOTER */
+    .site-footer { padding:3rem 2rem; background:var(--bg); border-top:1px solid var(--border); text-align:center; }
+    .footer-logo { font-family:var(--font-head); font-size:1.25rem; font-weight:700; margin-bottom:0.35rem; }
+    .footer-tagline { font-family:var(--font-mono); font-size:0.72rem; color:var(--muted2); margin-bottom:1rem; }
+    .footer-nav { display:flex; justify-content:center; gap:1.25rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+    .footer-nav a { color:var(--muted); text-decoration:none; font-family:var(--font-head); font-size:0.8rem; transition:color .2s; }
+    .footer-nav a:hover { color:var(--teal); }
+    .footer-copy { font-size:0.72rem; color:var(--muted2); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="site-nav">
+  <a href="/" class="nav-logo">FREQ<span class="accent">AI</span></a>
+  <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="document.getElementById('navLinks').classList.toggle('open')">&#9776;</button>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="/platform" class="active">Platform</a></li>
+    <li><a href="/solutions/barge-drafting">Solutions</a></li>
+    <li><a href="/about">About</a></li>
+    <li><a href="/team">Team</a></li>
+    <li><a href="/contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="page-hero">
+  <h1>The Intelligence Layer for Maritime Cargo Operations</h1>
+  <p>LiDAR. Point Cloud. Digital Twin. Automated Calculation.</p>
+</section>
+
+<!-- VIEW PILLS -->
+<div class="view-pills">
+  <button onclick="scrollToSim();flyTo('overhead')">&#8593; Overhead View</button>
+  <button onclick="scrollToSim();flyTo('side')">&#8592; Side Profile</button>
+  <button onclick="scrollToSim();flyTo('fore')">&#8595; Fore View</button>
+  <button onclick="scrollToSim();flyToStation(0)">&#8853; Inspect Station</button>
+</div>
+
+<!-- SIMULATION SECTION -->
+<section id="sim-section">
+
+  <!-- TOP CONTROL BAR -->
+  <div class="sim-topbar">
+    <span class="status-dot dot-idle" id="statusDot"></span>
+    <span class="status-label" id="statusLabel">SYSTEM READY</span>
+    <button class="sim-btn primary" id="btnStart" onclick="simStart()">&#9654; INITIATE SEQUENCE</button>
+    <button class="sim-btn" id="btnPause" style="display:none" onclick="simPause()">&#10074;&#10074; PAUSE</button>
+    <button class="sim-btn" id="btnResume" style="display:none" onclick="simResume()">&#9654; RESUME</button>
+    <button class="sim-btn" id="btnReset" onclick="simReset()" disabled>&#8634; RESET</button>
+    <span class="spd-lbl">SPEED</span>
+    <button class="spd-btn" onclick="setSpeed(1)">1x</button>
+    <button class="spd-btn active" onclick="setSpeed(2)">2x</button>
+    <button class="spd-btn" onclick="setSpeed(4)">4x</button>
+  </div>
+
+  <!-- CAMERA BAR -->
+  <div class="cam-bar">
+    <button class="cam-btn active" id="cam-orbit" onclick="flyTo('orbit')">ORBIT</button>
+    <button class="cam-btn" id="cam-overhead" onclick="flyTo('overhead')">OVERHEAD</button>
+    <button class="cam-btn" id="cam-side" onclick="flyTo('side')">SIDE</button>
+    <button class="cam-btn" id="cam-fore" onclick="flyTo('fore')">FORE</button>
+    <button class="cam-btn" id="cam-aft" onclick="flyTo('aft')">AFT</button>
+    <button class="cam-btn" id="cam-station" onclick="flyToStation(activeStation<0?0:activeStation+1)">STATION</button>
+    <span class="cam-label" id="activeCam">Active: ORBIT</span>
+  </div>
+
+  <!-- MOB BANNER -->
+  <div id="mobBanner">
+    &#9888; EMERGENCY STOP &mdash; MAN OVERBOARD DETECTED
+    <button class="sim-btn danger" id="btnResetMob" onclick="resetMOB()" style="display:none">RESET SAFETY EVENT</button>
+  </div>
+
+  <!-- MAIN GRID: Cesium + Manual Panel -->
+  <div class="sim-grid">
+
+    <!-- LEFT: Cesium container -->
+    <div style="position:relative;">
+      <div id="cesiumContainer"></div>
+
+      <!-- HUD OVERLAY -->
+      <div id="hud">
+        <div class="hud-header">
+          <span class="hud-title">BARGE-402</span>
+          <span class="hud-phase" id="hudPhase">&#9679; PHASE 1/6</span>
+        </div>
+        <div class="hud-row"><span class="lbl">FP</span><span class="val" id="hFP">3.24 ft</span></div>
+        <div class="hud-row"><span class="lbl">FS</span><span class="val" id="hFS">3.21 ft</span></div>
+        <div class="hud-row"><span class="lbl">MP</span><span class="val" id="hMP">3.28 ft</span></div>
+        <div class="hud-row"><span class="lbl">MS</span><span class="val" id="hMS">3.26 ft</span></div>
+        <div class="hud-row"><span class="lbl">AP</span><span class="val" id="hAP">3.31 ft</span></div>
+        <div class="hud-row"><span class="lbl">AS</span><span class="val" id="hAS">3.29 ft</span></div>
+        <hr class="hud-sep">
+        <div class="hud-row"><span class="lbl">CARGO</span><span class="val" id="hCargo">0.0 T</span></div>
+        <div class="hud-row"><span class="lbl">TRIM</span><span class="val" id="hTrim">0.07 ft</span></div>
+        <div class="hud-row"><span class="lbl">HEEL</span><span class="val" id="hHeel">0.02&deg;</span></div>
+      </div>
+
+      <!-- STATION CARD -->
+      <div id="stationCard">
+        <div class="sc-title" id="scTitle">DRAFT STATION</div>
+        <div class="sc-row"><span class="lbl">STATION</span><span class="val" id="scId">FP</span></div>
+        <div class="sc-row"><span class="lbl">READING</span><span class="val" id="scReading">3.24 ft</span></div>
+        <div class="sc-row"><span class="lbl">STATUS</span><span class="val" id="scStatus">NOMINAL</span></div>
+        <div class="sc-nav">
+          <button onclick="prevStation()">&#9664; PREV</button>
+          <button onclick="nextStation()">NEXT &#9654;</button>
+          <button onclick="closeStationCard()">&#10005; CLOSE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Manual Process Panel -->
+    <div class="manual-panel">
+      <div class="mp-header">MANUAL PROCESS<br>CURRENT INDUSTRY STANDARD</div>
+      <div id="manualBody"></div>
+      <div class="mp-nav">
+        <button id="btnPrevStep" onclick="prevStep()">&#9664; PREV</button>
+        <button id="btnNextStep" onclick="nextStep()">NEXT &#9654;</button>
+        <span class="step-ind" id="stepInd">STEP 1 OF 7</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE BAR -->
+  <div class="phase-section">
+    <div id="phaseTrack"></div>
+    <div id="pdName"></div>
+    <div id="pdText"></div>
+  </div>
+
+  <!-- MOB TRIGGER -->
+  <div class="mob-trigger">
+    <button class="sim-btn danger" onclick="triggerMOB()">&#9888; DEMO SAFETY EVENT &mdash; MOB SCENARIO</button>
+  </div>
+
+  <!-- COMPLETION CARD -->
+  <div id="completionCard">
+    <div class="cc-title">SURVEY COMPLETE &mdash; BARGE-402</div>
+    <div class="cc-grid">
+      <div class="cc-row"><span class="lbl">Total Time</span><span class="val">14 min 23 sec</span></div>
+      <div class="cc-row"><span class="lbl">Final Cargo</span><span class="val">1,482.6 T &mdash; VERIFIED</span></div>
+      <div class="cc-row"><span class="lbl">Avg Draft</span><span class="val">9.84 ft</span></div>
+      <div class="cc-row"><span class="lbl">Trim</span><span class="val">0.08 ft &mdash; NOM</span></div>
+      <div class="cc-row"><span class="lbl">Accuracy</span><span class="val">&plusmn;0.02 ft</span></div>
+      <div class="cc-row"><span class="lbl">Crew Exposure</span><span class="val">ZERO</span></div>
+    </div>
+    <div class="cc-vs">
+      vs Manual: <strong>~4 hours &rarr; 14 min</strong> | <strong>1&ndash;3% error &rarr; sub-inch</strong> | <strong>MOB risk &rarr; ELIMINATED</strong>
+    </div>
+  </div>
+
+</section>
+
+<!-- 6 CAPABILITY CARDS -->
+<section class="cap-section">
+  <h2>Platform Capabilities</h2>
+  <p class="sub">AUTONOMOUS INTELLIGENCE ACROSS THE FULL SURVEY LIFECYCLE</p>
+  <div class="cap-grid">
+    <div class="cap-card">
+      <div class="cap-icon">&#9678;</div>
+      <h3>LiDAR Array Deployment</h3>
+      <p>Millimeter-precision sensor positioning across all 6 draft stations simultaneously. No crew on barge deck.</p>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">&#9724;</div>
+      <h3>Point Cloud Processing</h3>
+      <p>Real-time 3D spatial data analysis with sub-inch accuracy. Millions of data points per scan cycle.</p>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">&#9670;</div>
+      <h3>Digital Twin Sync</h3>
+      <p>Live barge model updates reflect actual cargo distribution in real time. Continuous draft tracking.</p>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">&#9881;</div>
+      <h3>Automated Calculation</h3>
+      <p>AI-derived draft readings eliminate manual measurement error. Hydrostatic table integration built in.</p>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">&#9745;</div>
+      <h3>Regulatory Compliance</h3>
+      <p>Automated documentation meets USCG 46 CFR and IMO cargo survey standards. Audit-ready output.</p>
+    </div>
+    <div class="cap-card">
+      <div class="cap-icon">&#8644;</div>
+      <h3>Fleet Integration</h3>
+      <p>API-ready data feeds connect directly to dispatch, ERP, and port management systems.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 USE CASE CARDS -->
+<section class="uc-section">
+  <h2>Use Cases</h2>
+  <div class="uc-grid">
+    <a href="/solutions/barge-drafting" class="uc-card">
+      <h3>Inland Waterway</h3>
+      <p>Mississippi River barge operations. Automated draft survey for hopper, tank, and deck barges.</p>
+      <span class="arrow">View Solution &rarr;</span>
+    </a>
+    <a href="/contact" class="uc-card">
+      <h3>Port Operations</h3>
+      <p>Container terminal and bulk cargo draft monitoring. Real-time tonnage verification at berth.</p>
+      <span class="arrow">Contact Us &rarr;</span>
+    </a>
+    <a href="/contact" class="uc-card">
+      <h3>Offshore Marine</h3>
+      <p>Platform supply vessel and offshore cargo management. Remote monitoring in open water.</p>
+      <span class="arrow">Contact Us &rarr;</span>
+    </a>
+    <a href="/contact" class="uc-card">
+      <h3>Fleet Management</h3>
+      <p>Multi-vessel operational intelligence. Centralized dashboard across the entire fleet.</p>
+      <span class="arrow">Contact Us &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-logo">FREQ<span class="accent" style="color:var(--purple)">AI</span></div>
+  <p class="footer-tagline">Autonomous Maritime Intelligence</p>
+  <nav class="footer-nav">
+    <a href="/platform">Platform</a>
+    <a href="/solutions/barge-drafting">Solutions</a>
+    <a href="/about">About</a>
+    <a href="/team">Team</a>
+    <a href="/contact">Contact</a>
+  </nav>
+  <p class="footer-copy">&copy; 2026 FREQ AI. All rights reserved.</p>
+</footer>
+
+<script>
+/* ============================================================
+   FREQ AI — CESIUM PLATFORM SIMULATION
+   One file. No build step. No framework.
+   ============================================================ */
+
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkOTVlNWE2OC1jZGJiLTRiM2ItOTI3YS1lNTJhYjI0MTc5NWIiLCJpZCI6Mzk5NDM1LCJpYXQiOjE3NzI4NjgxMDh9.VKw90yzzc--FwvCaXlNAkf-UXZ-QMTh5WyrwdzS7lqM';
+
+/* ---- Globals ---- */
+var activeStation = -1;
+
+function scrollToSim() {
+  document.getElementById('sim-section').scrollIntoView({ behavior:'smooth' });
+}
+
+/* ---- Manual Process Panel ---- */
+var MANUAL_STEPS = [
+  { title:'CREW DEPLOYMENT',     body:'Crew dispatched to barge deck. Active crane and loading equipment in zone. No automated monitoring.', warn:'\u26A0 Man-overboard risk: ACTIVE', wc:'red' },
+  { title:'FORE DRAFT READING',  body:'Visual read of painted draft mark at bow. Estimated to nearest half-inch. Radioed to shore operator.', warn:'\u26A0 Visual estimate accuracy: \u00B10.5 inch', wc:'amber' },
+  { title:'MIDSHIP READING',     body:'Crew walks to midship. Second reading taken and radioed. Additional exposure event.', warn:'\u26A0 Radio relay \u2014 compounding error risk', wc:'amber' },
+  { title:'AFT DRAFT READING',   body:'Crew walks to stern. Three readings now on paper. No digital trace.', warn:'\u26A0 Paper log \u2014 no digital audit trail', wc:'amber' },
+  { title:'SHORE CALCULATION',   body:'Shore operator manually calculates displacement. 45\u201390 minutes. No live data.', warn:'\u26A0 No real-time feedback during loading', wc:'amber' },
+  { title:'UNMONITORED LOADING', body:'Loading proceeds on pre-calculated targets. No monitoring. Periodic visual checks only.', warn:'\u26A0 UNMONITORED INTERVAL \u2014 drift undetected', wc:'red' },
+  { title:'POST-LOAD REPEAT',    body:'Entire manual process repeats for final survey. Total: 3\u20134 hours. Paper report submitted.', warn:'\u2717 TOTAL: ~4 HRS | ERROR: 1\u20133% | MOB: THROUGHOUT', wc:'red' },
+];
+var manualStep = 0;
+
+function renderManualStep() {
+  var s = MANUAL_STEPS[manualStep];
+  document.getElementById('manualBody').innerHTML =
+    '<div class="step-num">STEP ' + (manualStep+1) + ' OF 7</div>' +
+    '<div class="step-title">' + s.title + '</div>' +
+    '<p class="step-body">' + s.body + '</p>' +
+    '<div class="step-warn ' + s.wc + '">' + s.warn + '</div>';
+  document.getElementById('stepInd').textContent = 'STEP ' + (manualStep+1) + ' OF 7';
+  document.getElementById('btnPrevStep').disabled = manualStep === 0;
+  document.getElementById('btnNextStep').disabled = manualStep === 6;
+}
+function prevStep() { if (manualStep > 0) { manualStep--; renderManualStep(); } }
+function nextStep() { if (manualStep < 6) { manualStep++; renderManualStep(); } }
+
+/* ---- Phase Definitions ---- */
+var PHASES = [
+  { name:'Phase 1: LiDAR Scanning',        desc:'Sensors emit laser pulses mapping barge position relative to the waterway surface.' },
+  { name:'Phase 2: Point Cloud Generation', desc:'AI processes pulses into a high-density point cloud. Dimensions and waterline captured.' },
+  { name:'Phase 3: Active Loading + Sync',  desc:'Digital twin synchronizes continuously. Cargo mass calculated in real time.' },
+  { name:'Phase 4: Cargo Verification',     desc:'AI integrates draft with hydrostatic tables. Tonnage confirmed. Deviation alerts active.' },
+  { name:'Phase 5: Post-Load Assessment',   desc:'Final draft acquired. Stability complete. All metrics nominal.' },
+  { name:'Phase 6: Final Survey & Report',  desc:'Survey complete. USCG-46 CFR documentation compiled and logged.' },
+];
+var PHASE_DUR = [20000, 15000, 60000, 20000, 20000, 15000];
+
+/* ---- Sim State ---- */
+var drafts     = { fp:3.24, fs:3.21, mp:3.28, ms:3.26, ap:3.31, as:3.29 };
+var cargo      = 0;
+var simPhase   = 0;
+var simPhaseMs = 0;
+var simState   = 'idle';
+var simTick    = null;
+var simSpeed   = 2;
+
+/* ---- Render helpers ---- */
+function renderPhaseBar() {
+  var html = '';
+  for (var i = 0; i < 6; i++) {
+    var cls = i < simPhase ? 'done' : (i === simPhase && simState === 'running' ? 'active' : 'pending');
+    html += '<div class="pdot ' + cls + '">' + (i+1) + '</div>';
+    if (i < 5) html += '<div class="pline' + (i < simPhase ? ' done' : '') + '"></div>';
+  }
+  document.getElementById('phaseTrack').innerHTML = html;
+  var ph = PHASES[Math.min(simPhase, 5)];
+  document.getElementById('pdName').textContent = ph.name;
+  document.getElementById('pdText').textContent = ph.desc;
+}
+
+function syncUI() {
+  var idle     = simState === 'idle';
+  var running  = simState === 'running';
+  var paused   = simState === 'paused';
+  var complete = simState === 'complete';
+  document.getElementById('btnStart').style.display  = (idle || complete) ? 'inline-block' : 'none';
+  document.getElementById('btnStart').textContent    = complete ? '\u21BA RUN AGAIN' : '\u25B6 INITIATE SEQUENCE';
+  document.getElementById('btnPause').style.display  = running ? 'inline-block' : 'none';
+  document.getElementById('btnResume').style.display = paused  ? 'inline-block' : 'none';
+  document.getElementById('btnReset').disabled       = idle;
+  var dots   = { idle:'dot-idle', running:'dot-running', paused:'dot-paused', complete:'dot-complete', alert:'dot-alert' };
+  var labels = { idle:'SYSTEM READY', running:'SEQUENCE ACTIVE', paused:'SEQUENCE PAUSED', complete:'SURVEY COMPLETE', alert:'SAFETY ALERT \u2014 E-STOP' };
+  document.getElementById('statusDot').className    = 'status-dot ' + (dots[simState] || 'dot-idle');
+  document.getElementById('statusLabel').textContent = labels[simState] || 'SYSTEM READY';
+}
+
+function updateHUD() {
+  document.getElementById('hFP').textContent    = drafts.fp.toFixed(2) + ' ft';
+  document.getElementById('hFS').textContent    = drafts.fs.toFixed(2) + ' ft';
+  document.getElementById('hMP').textContent    = drafts.mp.toFixed(2) + ' ft';
+  document.getElementById('hMS').textContent    = drafts.ms.toFixed(2) + ' ft';
+  document.getElementById('hAP').textContent    = drafts.ap.toFixed(2) + ' ft';
+  document.getElementById('hAS').textContent    = drafts.as.toFixed(2) + ' ft';
+  document.getElementById('hCargo').textContent = cargo.toFixed(1) + ' T';
+  document.getElementById('hTrim').textContent  = (drafts.ap - drafts.fp).toFixed(2) + ' ft';
+  document.getElementById('hHeel').textContent  = Math.abs(drafts.mp - drafts.ms).toFixed(2) + '\u00B0';
+  document.getElementById('hudPhase').textContent = '\u25CF PHASE ' + (simPhase + 1) + '/6';
+}
+
+/* ---- Init render ---- */
+renderManualStep();
+renderPhaseBar();
+syncUI();
+
+/* ============================================================
+   CESIUM INIT — async
+   ============================================================ */
+async function init() {
+  var viewer = new Cesium.Viewer('cesiumContainer', {
+    terrainProvider: Cesium.createWorldTerrain(),
+    baseLayerPicker:      false,
+    geocoder:             false,
+    homeButton:           false,
+    sceneModePicker:      false,
+    navigationHelpButton: false,
+    animation:            false,
+    timeline:             false,
+    fullscreenButton:     false,
+    vrButton:             false,
+    infoBox:              false,
+    selectionIndicator:   false,
+    creditContainer:      document.createElement('div'),
+  });
+
+  /* Load Google Photorealistic 3D Tiles */
+  try {
+    var tiles = await Cesium.Cesium3DTileset.fromIonAssetId(2275207);
+    viewer.scene.primitives.add(tiles);
+  } catch(e) {
+    console.warn('3D Tiles load failed, using default imagery:', e);
+  }
+
+  /* Remove default imagery — 3D tiles have own textures */
+  viewer.imageryLayers.removeAll();
+
+  /* Hide globe — 3D tiles replace it */
+  viewer.scene.globe.show         = false;
+  viewer.scene.skyBox.show        = false;
+  viewer.scene.sun.show           = false;
+  viewer.scene.moon.show          = false;
+  viewer.scene.skyAtmosphere.show = false;
+  viewer.scene.backgroundColor    = Cesium.Color.fromCssColorString('#080C18');
+
+  /* No camera drift */
+  viewer.scene.screenSpaceCameraController.inertiaSpin  = 0;
+  viewer.scene.screenSpaceCameraController.inertiaZoom  = 0;
+  viewer.scene.screenSpaceCameraController.inertiaTrans = 0;
+
+  /* Remove double-click select */
+  viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(
+    Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
+  );
+
+  /* ---- Scene Constants ---- */
+  var BARGE_LON = -89.7819;
+  var BARGE_LAT =  30.2752;
+  var BARGE_ALT =   2.0;
+
+  /* ---- Barge Entity ---- */
+  var bargeEntity = viewer.entities.add({
+    name: 'BARGE-402',
+    position: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT),
+    box: {
+      dimensions:   new Cesium.Cartesian3(45.0, 10.0, 3.0),
+      material:     Cesium.Color.fromCssColorString('#1E293B'),
+      outline:      true,
+      outlineColor: Cesium.Color.fromCssColorString('#7C3AED'),
+    },
+    label: {
+      text:        'BARGE-402',
+      font:        '13px monospace',
+      fillColor:   Cesium.Color.fromCssColorString('#06B6D4'),
+      pixelOffset: new Cesium.Cartesian2(0, -44),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      showBackground:    true,
+      backgroundColor:   Cesium.Color.fromCssColorString('#080C18').withAlpha(0.88),
+      backgroundPadding: new Cesium.Cartesian2(8, 4),
+    }
+  });
+
+  /* ---- 6 Draft Stations ---- */
+  var STATIONS = [
+    { id:'FP', label:'Fore Port',      lon: BARGE_LON - 0.000190, lat: BARGE_LAT - 0.000040 },
+    { id:'FS', label:'Fore Starboard', lon: BARGE_LON - 0.000190, lat: BARGE_LAT + 0.000040 },
+    { id:'MP', label:'Mid Port',       lon: BARGE_LON,            lat: BARGE_LAT - 0.000040 },
+    { id:'MS', label:'Mid Starboard',  lon: BARGE_LON,            lat: BARGE_LAT + 0.000040 },
+    { id:'AP', label:'Aft Port',       lon: BARGE_LON + 0.000190, lat: BARGE_LAT - 0.000040 },
+    { id:'AS', label:'Aft Starboard',  lon: BARGE_LON + 0.000190, lat: BARGE_LAT + 0.000040 },
+  ];
+
+  var markerEntities = STATIONS.map(function(s) {
+    return viewer.entities.add({
+      name: s.id,
+      position: Cesium.Cartesian3.fromDegrees(s.lon, s.lat, BARGE_ALT + 2.0),
+      ellipsoid: {
+        radii:    new Cesium.Cartesian3(0.7, 0.7, 0.7),
+        material: Cesium.Color.fromCssColorString('#64748B'),
+      },
+      label: {
+        text:        s.id,
+        font:        '11px monospace',
+        fillColor:   Cesium.Color.fromCssColorString('#94A3B8'),
+        pixelOffset: new Cesium.Cartesian2(0, -16),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      }
+    });
+  });
+
+  /* ---- Camera Start ---- */
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT - 0.003, 200),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-28), roll: 0 }
+  });
+
+  /* ---- Camera Views ---- */
+  var VIEWS = {
+    orbit:    { d: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT - 0.003, 200),  o: { heading:0, pitch:Cesium.Math.toRadians(-28), roll:0 } },
+    overhead: { d: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, 350),           o: { heading:0, pitch:Cesium.Math.toRadians(-90), roll:0 } },
+    side:     { d: Cesium.Cartesian3.fromDegrees(BARGE_LON - 0.003, BARGE_LAT, 25),    o: { heading:Cesium.Math.toRadians(90), pitch:Cesium.Math.toRadians(-5), roll:0 } },
+    fore:     { d: Cesium.Cartesian3.fromDegrees(BARGE_LON - 0.004, BARGE_LAT, 15),    o: { heading:0, pitch:Cesium.Math.toRadians(-10), roll:0 } },
+    aft:      { d: Cesium.Cartesian3.fromDegrees(BARGE_LON + 0.004, BARGE_LAT, 15),    o: { heading:Cesium.Math.toRadians(180), pitch:Cesium.Math.toRadians(-10), roll:0 } },
+  };
+
+  window.flyTo = function(name) {
+    var v = VIEWS[name]; if (!v) return;
+    viewer.camera.flyTo({ destination:v.d, orientation:v.o, duration:1.5, easingFunction:Cesium.EasingFunction.CUBIC_IN_OUT });
+    document.querySelectorAll('.cam-btn').forEach(function(b) { b.classList.remove('active'); });
+    var btn = document.getElementById('cam-' + name);
+    if (btn) btn.classList.add('active');
+    document.getElementById('activeCam').textContent = 'Active: ' + name.toUpperCase();
+  };
+
+  window.flyToStation = function(idx) {
+    activeStation = ((idx % 6) + 6) % 6;
+    var s = STATIONS[activeStation];
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(s.lon, s.lat - 0.0008, 20),
+      orientation: { heading:0, pitch:Cesium.Math.toRadians(-18), roll:0 },
+      duration: 1.5,
+    });
+    document.querySelectorAll('.cam-btn').forEach(function(b) { b.classList.remove('active'); });
+    var btn = document.getElementById('cam-station');
+    if (btn) btn.classList.add('active');
+    document.getElementById('activeCam').textContent = 'Active: STATION ' + s.id;
+    showStationCard(activeStation);
+  };
+
+  /* ---- Keyboard Shortcuts ---- */
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.code === 'Digit1') flyTo('orbit');
+    if (e.code === 'Digit2') flyTo('overhead');
+    if (e.code === 'Digit3') flyTo('side');
+    if (e.code === 'Digit4') flyTo('fore');
+    if (e.code === 'Digit5') flyTo('aft');
+    if (e.code === 'Digit6') flyToStation(activeStation + 1);
+    if (e.code === 'Escape') closeStationCard();
+  });
+
+  /* ---- Station Card ---- */
+  function showStationCard(idx) {
+    var s = STATIONS[idx];
+    var key = s.id.toLowerCase();
+    document.getElementById('scTitle').textContent   = 'DRAFT STATION \u2014 ' + s.label.toUpperCase();
+    document.getElementById('scId').textContent      = s.id;
+    document.getElementById('scReading').textContent = (drafts[key] || 3.24).toFixed(2) + ' ft';
+    document.getElementById('scStatus').textContent  = simState === 'complete' ? 'VERIFIED' : 'NOMINAL';
+    document.getElementById('stationCard').style.display = 'block';
+  }
+  window.closeStationCard = function() {
+    document.getElementById('stationCard').style.display = 'none';
+  };
+  window.prevStation = function() { flyToStation(activeStation - 1); };
+  window.nextStation = function() { flyToStation(activeStation + 1); };
+
+  /* ---- Reset Markers ---- */
+  function resetMarkers() {
+    markerEntities.forEach(function(m) {
+      m.ellipsoid.material = Cesium.Color.fromCssColorString('#64748B');
+    });
+  }
+
+  /* ---- Speed ---- */
+  window.setSpeed = function(s) {
+    simSpeed = s;
+    document.querySelectorAll('.spd-btn').forEach(function(b) {
+      b.classList.remove('active');
+    });
+    document.querySelectorAll('.spd-btn').forEach(function(b) {
+      if (b.textContent.trim() === s + 'x') b.classList.add('active');
+    });
+  };
+
+  /* ---- Tick ---- */
+  function tick() {
+    if (simState !== 'running') return;
+    simPhaseMs += 100 * simSpeed;
+    var dur  = PHASE_DUR[simPhase];
+    var prog = Math.min(simPhaseMs / dur, 1);
+
+    /* Phase 3 (index 2): Active Loading */
+    if (simPhase === 2) {
+      var rise = 3.24 + (9.84 - 3.24) * prog;
+      drafts = {
+        fp: rise - 0.02,
+        fs: rise - 0.06,
+        mp: rise + 0.07,
+        ms: rise + 0.05,
+        ap: rise + 0.19,
+        as: rise + 0.17
+      };
+      cargo = 1482.6 * prog;
+
+      /* Barge sinks */
+      bargeEntity.position = Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT - 1.5 * prog);
+
+      /* Markers update */
+      markerEntities.forEach(function(m, i) {
+        m.position = Cesium.Cartesian3.fromDegrees(STATIONS[i].lon, STATIONS[i].lat, (BARGE_ALT - 1.5 * prog) + 2.0);
+        var t = i / 6;
+        if (prog > t + 0.15) {
+          m.ellipsoid.material = Cesium.Color.fromCssColorString('#10B981');
+        } else if (prog > t) {
+          m.ellipsoid.material = Cesium.Color.fromCssColorString('#06B6D4');
+        }
+      });
+    }
+
+    /* Slight jitter on readings for realism */
+    if (Math.random() < 0.03) {
+      var keys = ['fp','fs','mp','ms','ap','as'];
+      keys.forEach(function(k) { drafts[k] += (Math.random() - 0.5) * 0.04; });
+    }
+
+    updateHUD();
+
+    /* Phase advance */
+    if (simPhaseMs >= dur) {
+      simPhaseMs = 0;
+      simPhase++;
+      if (simPhase >= 6) { completeSim(); return; }
+      renderPhaseBar();
+    }
+  }
+
+  function completeSim() {
+    clearInterval(simTick);
+    simState = 'complete';
+    markerEntities.forEach(function(m) {
+      m.ellipsoid.material = Cesium.Color.fromCssColorString('#10B981');
+    });
+    syncUI();
+    renderPhaseBar();
+    document.getElementById('completionCard').style.display = 'block';
+    document.getElementById('completionCard').scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+
+  /* ---- MOB Demo ---- */
+  var mobEntity = null;
+
+  window.triggerMOB = function() {
+    if (simState === 'alert') return;
+    simState = 'alert';
+    clearInterval(simTick);
+    mobEntity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(BARGE_LON - 0.00008, BARGE_LAT - 0.00006, BARGE_ALT - 0.5),
+      ellipsoid: {
+        radii:    new Cesium.Cartesian3(1.2, 1.2, 1.2),
+        material: Cesium.Color.fromCssColorString('#EF4444'),
+      }
+    });
+    document.getElementById('mobBanner').style.display = 'flex';
+    syncUI();
+    setTimeout(function() {
+      document.getElementById('btnResetMob').style.display = 'inline-block';
+    }, 5000);
+  };
+
+  window.resetMOB = function() {
+    if (mobEntity) { viewer.entities.remove(mobEntity); mobEntity = null; }
+    document.getElementById('mobBanner').style.display   = 'none';
+    document.getElementById('btnResetMob').style.display = 'none';
+    simState = 'paused';
+    syncUI();
+  };
+
+  /* ---- Sim Controls ---- */
+  window.simStart = function() {
+    if (simState !== 'idle' && simState !== 'complete') return;
+    simState   = 'running';
+    simPhase   = 0;
+    simPhaseMs = 0;
+    cargo      = 0;
+    manualStep = 0;
+    drafts = { fp:3.24, fs:3.21, mp:3.28, ms:3.26, ap:3.31, as:3.29 };
+    bargeEntity.position = Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT);
+    markerEntities.forEach(function(m, i) {
+      m.position = Cesium.Cartesian3.fromDegrees(STATIONS[i].lon, STATIONS[i].lat, BARGE_ALT + 2.0);
+    });
+    resetMarkers();
+    document.getElementById('completionCard').style.display = 'none';
+    document.getElementById('mobBanner').style.display      = 'none';
+    syncUI(); renderPhaseBar(); renderManualStep(); updateHUD();
+    simTick = setInterval(tick, 100);
+  };
+
+  window.simPause = function() {
+    if (simState !== 'running') return;
+    simState = 'paused';
+    clearInterval(simTick);
+    syncUI();
+  };
+
+  window.simResume = function() {
+    if (simState !== 'paused') return;
+    simState = 'running';
+    simTick  = setInterval(tick, 100);
+    syncUI();
+  };
+
+  window.simReset = function() {
+    clearInterval(simTick);
+    simState   = 'idle';
+    simPhase   = 0;
+    simPhaseMs = 0;
+    cargo      = 0;
+    manualStep = 0;
+    drafts = { fp:3.24, fs:3.21, mp:3.28, ms:3.26, ap:3.31, as:3.29 };
+    bargeEntity.position = Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT);
+    markerEntities.forEach(function(m, i) {
+      m.position = Cesium.Cartesian3.fromDegrees(STATIONS[i].lon, STATIONS[i].lat, BARGE_ALT + 2.0);
+    });
+    resetMarkers();
+    document.getElementById('completionCard').style.display = 'none';
+    document.getElementById('mobBanner').style.display      = 'none';
+    document.getElementById('btnResetMob').style.display    = 'none';
+    syncUI(); renderPhaseBar(); renderManualStep(); updateHUD();
+  };
+
+} /* end init() */
+
+init().catch(function(err) { console.error('Cesium init error:', err); });
+</script>
+</body>
+</html>
