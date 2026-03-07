@@ -431,7 +431,7 @@ if (typeof Cesium === 'undefined') {
 
 /* Set token FIRST — before any Cesium calls */
 if (typeof Cesium !== 'undefined') {
-  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkOTVlNWE2OC1jZGJiLTRiM2ItOTI3YS1lNTJhYjI0MTc5NWIiLCJpZCI6Mzk5NDM1LCJpYXQiOjE3NzI4NjgxMDh9.VKw90yzzc--FwvCaXlNAkf-UXZ-QMTh5WyrwdzS7lqM';
+  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjMmRkMWRmNy05MDE0LTRmODEtODUzMC0wMzE0NmI5ZWU0MzEiLCJpZCI6Mzk5NDM1LCJpYXQiOjE3NzI5MTg3OTJ9.KecM4xfBnp9MjS4Dc-7cbk1_SkWgBqQ_kRhMsnkisn8';
 }
 
 /* ---- Globals ---- */
@@ -580,28 +580,22 @@ async function init() {
     creditContainer:      document.createElement('div'),
   });
 
-  /* Scene atmosphere — dark mode */
-  viewer.scene.skyBox.show        = false;
-  viewer.scene.sun.show           = false;
+  /* Scene atmosphere */
+  viewer.scene.skyBox.show        = true;
+  viewer.scene.sun.show           = true;
   viewer.scene.moon.show          = false;
-  viewer.scene.skyAtmosphere.show = false;
+  viewer.scene.skyAtmosphere.show = true;
   viewer.scene.backgroundColor    = Cesium.Color.fromCssColorString('#080C18');
 
-  /* Try loading Google Photorealistic 3D Tiles */
-  var tilesLoaded = false;
-  try {
-    var tiles = await Cesium.Cesium3DTileset.fromIonAssetId(2275207);
-    viewer.scene.primitives.add(tiles);
-    tilesLoaded = true;
-    /* Only hide globe if 3D tiles loaded — they provide their own visuals */
-    viewer.imageryLayers.removeAll();
-    viewer.scene.globe.show = false;
-  } catch(e) {
-    console.warn('3D Tiles unavailable, using globe with terrain:', e);
-    /* Keep globe visible as fallback — user still sees terrain */
-    viewer.scene.globe.enableLighting = false;
-    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0D1424');
-  }
+  /* Globe always visible — satellite imagery guaranteed to render */
+  viewer.scene.globe.show           = true;
+  viewer.scene.globe.enableLighting = false;
+
+  /* Use Bing Aerial with Labels — works with any Ion token */
+  viewer.imageryLayers.removeAll();
+  viewer.imageryLayers.addImageryProvider(
+    new Cesium.IonImageryProvider({ assetId: 3 })
+  );
 
   /* No camera drift */
   viewer.scene.screenSpaceCameraController.inertiaSpin  = 0;
