@@ -421,7 +421,18 @@
    One file. No build step. No framework.
    ============================================================ */
 
-Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkOTVlNWE2OC1jZGJiLTRiM2ItOTI3YS1lNTJhYjI0MTc5NWIiLCJpZCI6Mzk5NDM1LCJpYXQiOjE3NzI4NjgxMDh9.VKw90yzzc--FwvCaXlNAkf-UXZ-QMTh5WyrwdzS7lqM';
+/* Guard: if Cesium CDN failed to load */
+if (typeof Cesium === 'undefined') {
+  document.getElementById('cesiumContainer').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94A3B8;font-family:monospace;font-size:14px;text-align:center;padding:2rem;">' +
+    'Cesium JS failed to load.<br>Check your network connection and reload.' +
+    '</div>';
+}
+
+/* Set token FIRST — before any Cesium calls */
+if (typeof Cesium !== 'undefined') {
+  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkOTVlNWE2OC1jZGJiLTRiM2ItOTI3YS1lNTJhYjI0MTc5NWIiLCJpZCI6Mzk5NDM1LCJpYXQiOjE3NzI4NjgxMDh9.VKw90yzzc--FwvCaXlNAkf-UXZ-QMTh5WyrwdzS7lqM';
+}
 
 /* ---- Globals ---- */
 var activeStation = -1;
@@ -528,8 +539,33 @@ syncUI();
    CESIUM INIT — async
    ============================================================ */
 async function init() {
+  if (typeof Cesium === 'undefined') return;
+
+  /* Show loading overlay */
+  var loadingEl = document.createElement('div');
+  loadingEl.id = 'cesium-loading';
+  loadingEl.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#080C18;z-index:5;color:#94A3B8;font-family:monospace;font-size:13px;';
+  loadingEl.textContent = 'Initializing simulation...';
+  document.getElementById('cesiumContainer').style.position = 'relative';
+  document.getElementById('cesiumContainer').appendChild(loadingEl);
+
+  /* Terrain provider — try async first, then sync fallback, then ellipsoid */
+  var terrainProvider;
+  try {
+    if (typeof Cesium.createWorldTerrainAsync === 'function') {
+      terrainProvider = await Cesium.createWorldTerrainAsync();
+    } else if (typeof Cesium.createWorldTerrain === 'function') {
+      terrainProvider = Cesium.createWorldTerrain();
+    } else {
+      terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    }
+  } catch(e) {
+    console.warn('Terrain provider fallback:', e);
+    terrainProvider = new Cesium.EllipsoidTerrainProvider();
+  }
+
   var viewer = new Cesium.Viewer('cesiumContainer', {
-    terrainProvider: Cesium.createWorldTerrain(),
+    terrainProvider:      terrainProvider,
     baseLayerPicker:      false,
     geocoder:             false,
     homeButton:           false,
@@ -544,24 +580,28 @@ async function init() {
     creditContainer:      document.createElement('div'),
   });
 
-  /* Load Google Photorealistic 3D Tiles */
-  try {
-    var tiles = await Cesium.Cesium3DTileset.fromIonAssetId(2275207);
-    viewer.scene.primitives.add(tiles);
-  } catch(e) {
-    console.warn('3D Tiles load failed, using default imagery:', e);
-  }
-
-  /* Remove default imagery — 3D tiles have own textures */
-  viewer.imageryLayers.removeAll();
-
-  /* Hide globe — 3D tiles replace it */
-  viewer.scene.globe.show         = false;
+  /* Scene atmosphere — dark mode */
   viewer.scene.skyBox.show        = false;
   viewer.scene.sun.show           = false;
   viewer.scene.moon.show          = false;
   viewer.scene.skyAtmosphere.show = false;
   viewer.scene.backgroundColor    = Cesium.Color.fromCssColorString('#080C18');
+
+  /* Try loading Google Photorealistic 3D Tiles */
+  var tilesLoaded = false;
+  try {
+    var tiles = await Cesium.Cesium3DTileset.fromIonAssetId(2275207);
+    viewer.scene.primitives.add(tiles);
+    tilesLoaded = true;
+    /* Only hide globe if 3D tiles loaded — they provide their own visuals */
+    viewer.imageryLayers.removeAll();
+    viewer.scene.globe.show = false;
+  } catch(e) {
+    console.warn('3D Tiles unavailable, using globe with terrain:', e);
+    /* Keep globe visible as fallback — user still sees terrain */
+    viewer.scene.globe.enableLighting = false;
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0D1424');
+  }
 
   /* No camera drift */
   viewer.scene.screenSpaceCameraController.inertiaSpin  = 0;
@@ -572,6 +612,10 @@ async function init() {
   viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(
     Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
   );
+
+  /* Remove loading overlay */
+  var loadEl = document.getElementById('cesium-loading');
+  if (loadEl) loadEl.remove();
 
   /* ---- Scene Constants ---- */
   var BARGE_LON = -89.7819;
@@ -861,7 +905,17 @@ async function init() {
 
 } /* end init() */
 
-init().catch(function(err) { console.error('Cesium init error:', err); });
+init().catch(function(err) {
+  console.error('Cesium init error:', err);
+  var loadEl = document.getElementById('cesium-loading');
+  if (loadEl) loadEl.textContent = 'Simulation failed to initialize. Check console for details.';
+  var container = document.getElementById('cesiumContainer');
+  if (container && !loadEl) {
+    container.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#EF4444;font-family:monospace;font-size:13px;text-align:center;padding:2rem;">' +
+      'Cesium initialization error.<br>' + (err.message || err) + '</div>';
+  }
+});
 </script>
 </body>
 </html>
