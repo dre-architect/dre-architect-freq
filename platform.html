@@ -6,9 +6,9 @@
   <meta name="description" content="FREQ AI Platform — Autonomous Draft Survey Intelligence for Maritime Cargo Operations">
   <title>Platform — FREQ AI</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
-  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href='https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css' rel='stylesheet'/>
+  <script src='https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.js'></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
@@ -45,6 +45,7 @@
       pointer-events:none; }
     .page-hero h1 { font-family:var(--font-head); font-size:clamp(1.5rem,4vw,2.5rem); font-weight:700; margin-bottom:0.75rem; position:relative; }
     .page-hero p { color:var(--muted); font-family:var(--font-mono); font-size:0.875rem; letter-spacing:0.05em; position:relative; }
+    .section-badge { font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.12em; color:var(--teal); background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.25); padding:0.3rem 0.9rem; border-radius:999px; display:inline-block; margin-bottom:1rem; position:relative; }
 
     /* VIEW PILLS */
     .view-pills { display:flex; justify-content:center; gap:0.5rem; padding:1.25rem 1rem; flex-wrap:wrap; background:var(--bg); border-bottom:1px solid var(--border); }
@@ -56,7 +57,7 @@
 
     /* TOP BAR */
     .sim-topbar { display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1.25rem; background:var(--bg2); border-bottom:1px solid var(--border); flex-wrap:wrap; }
-    .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; display:inline-block; }
     .dot-idle { background:var(--muted2); }
     .dot-running { background:var(--green); animation:pulse 1s infinite; }
     .dot-paused { background:var(--amber); }
@@ -87,16 +88,16 @@
     .sim-grid { display:grid; grid-template-columns:1fr 300px; }
     @media(max-width:900px) { .sim-grid { grid-template-columns:1fr; } }
 
-    /* CESIUM */
-    #cesiumContainer { width:100%; height:540px; background:var(--bg); position:relative; }
-    @media(max-width:768px) { #cesiumContainer { height:380px; } }
-    .cesium-viewer-toolbar, .cesium-viewer-animationContainer, .cesium-viewer-timelineContainer,
-    .cesium-viewer-bottom, .cesium-widget-credits, .cesium-credit-logoContainer,
-    .cesium-credit-textContainer { display:none !important; }
-    .cesium-viewer { font-family:var(--font-mono) !important; }
+    /* MAP CONTAINER */
+    #mapContainer { width:100%; height:540px; background:var(--bg); }
+    @media(max-width:768px) { #mapContainer { height:380px; } }
+
+    /* Hide Mapbox branding */
+    .mapboxgl-ctrl-logo,
+    .mapboxgl-ctrl-attrib { display:none !important; }
 
     /* HUD */
-    #hud { position:absolute; top:12px; right:12px; background:rgba(8,12,24,0.88); border:1px solid var(--border); border-radius:6px; padding:10px 14px; pointer-events:none; z-index:10; min-width:185px; }
+    #hud { position:absolute; top:12px; right:12px; background:rgba(8,12,24,0.88); border:1px solid var(--border); border-radius:6px; padding:10px 14px; pointer-events:none; z-index:10; min-width:185px; backdrop-filter:blur(8px); }
     .hud-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding-bottom:5px; border-bottom:1px solid var(--border); }
     .hud-title { font-family:var(--font-mono); font-size:0.72rem; font-weight:700; color:var(--teal); }
     .hud-phase { font-family:var(--font-mono); font-size:0.62rem; color:var(--muted); }
@@ -107,7 +108,7 @@
     @media(max-width:768px) { #hud { top:8px; right:8px; min-width:155px; padding:8px 10px; } .hud-row { font-size:0.6rem; } }
 
     /* STATION CARD */
-    #stationCard { position:absolute; bottom:14px; left:14px; background:rgba(8,12,24,0.92); border:1px solid var(--teal); border-radius:6px; padding:12px 16px; z-index:10; display:none; min-width:220px; }
+    #stationCard { position:absolute; bottom:14px; left:14px; background:rgba(8,12,24,0.92); border:1px solid var(--teal); border-radius:6px; padding:12px 16px; z-index:10; display:none; min-width:220px; backdrop-filter:blur(8px); }
     .sc-title { font-family:var(--font-mono); font-size:0.72rem; color:var(--teal); margin-bottom:6px; }
     .sc-row { font-family:var(--font-mono); font-size:0.75rem; margin:3px 0; }
     .sc-row .lbl { color:var(--muted2); }
@@ -116,15 +117,28 @@
     .sc-nav button { font-family:var(--font-mono); font-size:0.62rem; padding:0.2rem 0.5rem; background:var(--card); border:1px solid var(--border); color:var(--muted); cursor:pointer; border-radius:3px; }
     .sc-nav button:hover { border-color:var(--teal); color:var(--teal); }
 
+    /* STATION MARKERS */
+    .station-marker {
+      width:28px; height:28px; border-radius:50%;
+      background:#1E293B; border:2px solid #64748B;
+      color:#94A3B8; font-family:'JetBrains Mono',monospace;
+      font-size:9px; font-weight:700;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:border-color 0.3s,background 0.3s,color 0.3s;
+    }
+    .station-marker.active { border-color:#06B6D4; background:rgba(6,182,212,0.2); color:#06B6D4; }
+    .station-marker.locked { border-color:#10B981; background:rgba(16,185,129,0.2); color:#10B981; }
+    .station-marker.alert  { border-color:#EF4444; background:rgba(239,68,68,0.2);  color:#EF4444; }
+
     /* MANUAL PANEL */
-    .manual-panel { background:var(--bg2); border-left:1px solid var(--border); padding:1rem; display:flex; flex-direction:column; }
-    @media(max-width:900px) { .manual-panel { border-left:none; border-top:1px solid var(--border); } }
+    .manual-panel { background:var(--bg2); border-left:1px solid var(--border); padding:1rem; display:flex; flex-direction:column; min-height:540px; }
+    @media(max-width:900px) { .manual-panel { border-left:none; border-top:1px solid var(--border); min-height:auto; } }
     .mp-header { font-family:var(--font-mono); font-size:0.68rem; color:var(--amber); margin-bottom:0.75rem; padding-bottom:0.5rem; border-bottom:1px solid var(--border); letter-spacing:0.04em; }
     .step-num { font-family:var(--font-mono); font-size:0.6rem; color:var(--muted2); margin-bottom:0.35rem; }
     .step-title { font-family:var(--font-head); font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.5rem; }
     .step-body { font-size:0.8rem; color:var(--muted); line-height:1.5; margin-bottom:0.75rem; }
     .step-warn { font-family:var(--font-mono); font-size:0.68rem; padding:0.4rem 0.6rem; border-radius:4px; margin-bottom:0.75rem; }
-    .step-warn.red { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:var(--red); }
+    .step-warn.red   { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:var(--red); }
     .step-warn.amber { background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:var(--amber); }
     .mp-nav { display:flex; align-items:center; gap:0.5rem; margin-top:auto; padding-top:0.75rem; border-top:1px solid var(--border); }
     .mp-nav button { font-family:var(--font-mono); font-size:0.62rem; padding:0.3rem 0.6rem; background:var(--card); border:1px solid var(--border); color:var(--muted); cursor:pointer; border-radius:3px; }
@@ -136,9 +150,9 @@
     .phase-section { padding:1rem 1.25rem; background:var(--bg2); border-top:1px solid var(--border); }
     #phaseTrack { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:0.75rem; }
     .pdot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:0.65rem; font-weight:700; border:2px solid var(--border); color:var(--muted2); background:var(--bg); flex-shrink:0; }
-    .pdot.active { border-color:var(--teal); color:var(--teal); background:rgba(6,182,212,0.1); }
-    .pdot.done { border-color:var(--green); color:var(--green); background:rgba(16,185,129,0.1); }
-    .pline { width:32px; height:2px; background:var(--border); flex-shrink:0; }
+    .pdot.active { border-color:var(--teal); color:var(--teal); background:rgba(6,182,212,0.1); animation:pulse 1.2s infinite; }
+    .pdot.done   { border-color:var(--green); color:var(--green); background:rgba(16,185,129,0.1); }
+    .pline { width:32px; height:2px; background:var(--border); flex-shrink:0; transition:background 0.4s; }
     .pline.done { background:var(--green); }
     #pdName { font-family:var(--font-mono); font-size:0.72rem; color:var(--text); text-align:center; }
     #pdText { font-family:var(--font-body); font-size:0.78rem; color:var(--muted); text-align:center; margin-top:0.25rem; }
@@ -209,16 +223,17 @@
 
 <!-- HERO -->
 <section class="page-hero">
+  <div class="section-badge">LIVE SIMULATION</div>
   <h1>The Intelligence Layer for Maritime Cargo Operations</h1>
-  <p>LiDAR. Point Cloud. Digital Twin. Automated Calculation.</p>
+  <p>LiDAR &nbsp;&middot;&nbsp; Point Cloud AI &nbsp;&middot;&nbsp; Digital Twin Sync &nbsp;&middot;&nbsp; Automated Calculation</p>
 </section>
 
 <!-- VIEW PILLS -->
 <div class="view-pills">
-  <button onclick="scrollToSim();flyTo('overhead')">&#8593; Overhead View</button>
-  <button onclick="scrollToSim();flyTo('side')">&#8592; Side Profile</button>
-  <button onclick="scrollToSim();flyTo('fore')">&#8595; Fore View</button>
-  <button onclick="scrollToSim();flyToStation(0)">&#8853; Inspect Station</button>
+  <button onclick="flyToView('overhead')">&#8593; Overhead View</button>
+  <button onclick="flyToView('side')">&#8592; Side Profile</button>
+  <button onclick="flyToView('fore')">&#8595; Fore View</button>
+  <button onclick="flyToStation(0)">&#8853; Inspect Station</button>
 </div>
 
 <!-- SIMULATION SECTION -->
@@ -228,7 +243,7 @@
   <div class="sim-topbar">
     <span class="status-dot dot-idle" id="statusDot"></span>
     <span class="status-label" id="statusLabel">SYSTEM READY</span>
-    <button class="sim-btn primary" id="btnStart" onclick="simStart()">&#9654; INITIATE SEQUENCE</button>
+    <button class="sim-btn primary" id="btnStart" onclick="simStart()">&#9654;&nbsp; INITIATE SEQUENCE</button>
     <button class="sim-btn" id="btnPause" style="display:none" onclick="simPause()">&#10074;&#10074; PAUSE</button>
     <button class="sim-btn" id="btnResume" style="display:none" onclick="simResume()">&#9654; RESUME</button>
     <button class="sim-btn" id="btnReset" onclick="simReset()" disabled>&#8634; RESET</button>
@@ -240,29 +255,23 @@
 
   <!-- CAMERA BAR -->
   <div class="cam-bar">
-    <button class="cam-btn active" id="cam-orbit" onclick="flyTo('orbit')">ORBIT</button>
-    <button class="cam-btn" id="cam-overhead" onclick="flyTo('overhead')">OVERHEAD</button>
-    <button class="cam-btn" id="cam-side" onclick="flyTo('side')">SIDE</button>
-    <button class="cam-btn" id="cam-fore" onclick="flyTo('fore')">FORE</button>
-    <button class="cam-btn" id="cam-aft" onclick="flyTo('aft')">AFT</button>
-    <button class="cam-btn" id="cam-station" onclick="flyToStation(activeStation<0?0:activeStation+1)">STATION</button>
-    <span class="cam-label" id="activeCam">Active: ORBIT</span>
+    <button class="cam-btn active" id="cam-orbit"    onclick="flyToView('orbit')">ORBIT</button>
+    <button class="cam-btn"        id="cam-overhead" onclick="flyToView('overhead')">OVERHEAD</button>
+    <button class="cam-btn"        id="cam-side"     onclick="flyToView('side')">SIDE</button>
+    <button class="cam-btn"        id="cam-fore"     onclick="flyToView('fore')">FORE</button>
+    <button class="cam-btn"        id="cam-aft"      onclick="flyToView('aft')">AFT</button>
+    <button class="cam-btn"                          onclick="flyToStation(0)">STATION</button>
+    <span id="activeCam" class="cam-label">VIEW: ORBIT</span>
   </div>
 
-  <!-- MOB BANNER -->
-  <div id="mobBanner">
-    &#9888; EMERGENCY STOP &mdash; MAN OVERBOARD DETECTED
-    <button class="sim-btn danger" id="btnResetMob" onclick="resetMOB()" style="display:none">RESET SAFETY EVENT</button>
-  </div>
-
-  <!-- MAIN GRID: Cesium + Manual Panel -->
+  <!-- MAP + MANUAL PANEL -->
   <div class="sim-grid">
 
-    <!-- LEFT: Cesium container -->
+    <!-- MAP WRAPPER -->
     <div style="position:relative;">
-      <div id="cesiumContainer"></div>
+      <div id="mapContainer"></div>
 
-      <!-- HUD OVERLAY -->
+      <!-- HUD -->
       <div id="hud">
         <div class="hud-header">
           <span class="hud-title">BARGE-402</span>
@@ -276,34 +285,41 @@
         <div class="hud-row"><span class="lbl">AS</span><span class="val" id="hAS">3.29 ft</span></div>
         <hr class="hud-sep">
         <div class="hud-row"><span class="lbl">CARGO</span><span class="val" id="hCargo">0.0 T</span></div>
-        <div class="hud-row"><span class="lbl">TRIM</span><span class="val" id="hTrim">0.07 ft</span></div>
-        <div class="hud-row"><span class="lbl">HEEL</span><span class="val" id="hHeel">0.02&deg;</span></div>
+        <div class="hud-row"><span class="lbl">TRIM</span> <span class="val" id="hTrim">0.07 ft</span></div>
+        <div class="hud-row"><span class="lbl">HEEL</span> <span class="val" id="hHeel">0.02&deg;</span></div>
       </div>
 
       <!-- STATION CARD -->
       <div id="stationCard">
-        <div class="sc-title" id="scTitle">DRAFT STATION</div>
-        <div class="sc-row"><span class="lbl">STATION</span><span class="val" id="scId">FP</span></div>
-        <div class="sc-row"><span class="lbl">READING</span><span class="val" id="scReading">3.24 ft</span></div>
-        <div class="sc-row"><span class="lbl">STATUS</span><span class="val" id="scStatus">NOMINAL</span></div>
+        <div class="sc-title" id="scTitle">STATION</div>
+        <div class="sc-row"><span class="lbl">ID&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="val" id="scId">FP</span></div>
+        <div class="sc-row"><span class="lbl">DRAFT&nbsp;</span><span class="val" id="scReading">3.24 ft</span></div>
+        <div class="sc-row"><span class="lbl">STATUS</span><span class="val" id="scStatus">STANDBY</span></div>
         <div class="sc-nav">
-          <button onclick="prevStation()">&#9664; PREV</button>
-          <button onclick="nextStation()">NEXT &#9654;</button>
-          <button onclick="closeStationCard()">&#10005; CLOSE</button>
+          <button onclick="prevStation()">&#8592; PREV</button>
+          <button onclick="nextStation()">NEXT &#8594;</button>
+          <button onclick="closeStationCard()" style="margin-left:auto;">&#10005;</button>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT: Manual Process Panel -->
+    <!-- MANUAL PANEL -->
     <div class="manual-panel">
-      <div class="mp-header">MANUAL PROCESS<br>CURRENT INDUSTRY STANDARD</div>
+      <div class="mp-header">MANUAL PROCESS<br><span style="color:var(--red);font-size:0.62rem;letter-spacing:0;">Current Industry Standard</span></div>
       <div id="manualBody"></div>
       <div class="mp-nav">
-        <button id="btnPrevStep" onclick="prevStep()">&#9664; PREV</button>
-        <button id="btnNextStep" onclick="nextStep()">NEXT &#9654;</button>
+        <button id="btnPrevStep" onclick="prevStep()">&#8592;</button>
+        <button id="btnNextStep" onclick="nextStep()">&#8594;</button>
         <span class="step-ind" id="stepInd">STEP 1 OF 7</span>
       </div>
     </div>
+
+  </div><!-- /sim-grid -->
+
+  <!-- MOB BANNER -->
+  <div id="mobBanner">
+    <span>&#9888;&nbsp; EMERGENCY STOP &mdash; MAN OVERBOARD DETECTED &mdash; ALL OPERATIONS HALTED</span>
+    <button id="btnResetMob" class="sim-btn danger" onclick="resetMOB()" style="display:none;">RESET SAFETY EVENT</button>
   </div>
 
   <!-- PHASE BAR -->
@@ -320,83 +336,60 @@
 
   <!-- COMPLETION CARD -->
   <div id="completionCard">
-    <div class="cc-title">SURVEY COMPLETE &mdash; BARGE-402</div>
+    <div class="cc-title">&#10003; SURVEY COMPLETE &mdash; BARGE-402</div>
     <div class="cc-grid">
       <div class="cc-row"><span class="lbl">Total Time</span><span class="val">14 min 23 sec</span></div>
-      <div class="cc-row"><span class="lbl">Final Cargo</span><span class="val">1,482.6 T &mdash; VERIFIED</span></div>
-      <div class="cc-row"><span class="lbl">Avg Draft</span><span class="val">9.84 ft</span></div>
-      <div class="cc-row"><span class="lbl">Trim</span><span class="val">0.08 ft &mdash; NOM</span></div>
-      <div class="cc-row"><span class="lbl">Accuracy</span><span class="val">&plusmn;0.02 ft</span></div>
-      <div class="cc-row"><span class="lbl">Crew Exposure</span><span class="val">ZERO</span></div>
+      <div class="cc-row"><span class="lbl">Final Cargo</span><span class="val">1,482.6 T &#10003;</span></div>
+      <div class="cc-row"><span class="lbl">Avg Draft</span>  <span class="val">9.84 ft</span></div>
+      <div class="cc-row"><span class="lbl">Trim</span>       <span class="val">0.08 ft NOM</span></div>
+      <div class="cc-row"><span class="lbl">Accuracy</span>   <span class="val">&plusmn;0.02 ft</span></div>
+      <div class="cc-row"><span class="lbl">Crew Exposure</span><span class="val" style="color:var(--green);">ZERO</span></div>
     </div>
     <div class="cc-vs">
-      vs Manual: <strong>~4 hours &rarr; 14 min</strong> | <strong>1&ndash;3% error &rarr; sub-inch</strong> | <strong>MOB risk &rarr; ELIMINATED</strong>
+      Manual: ~4 hours &rarr; <strong>14 minutes</strong> &nbsp;|&nbsp;
+      Error: 1&ndash;3% &rarr; <strong>sub-inch</strong> &nbsp;|&nbsp;
+      MOB Risk &rarr; <strong>ELIMINATED</strong>
     </div>
   </div>
 
-</section>
+</section><!-- /sim-section -->
 
-<!-- 6 CAPABILITY CARDS -->
+<!-- CAPABILITIES -->
 <section class="cap-section">
   <h2>Platform Capabilities</h2>
-  <p class="sub">AUTONOMOUS INTELLIGENCE ACROSS THE FULL SURVEY LIFECYCLE</p>
+  <p class="sub">Autonomous intelligence from first scan to final report.</p>
   <div class="cap-grid">
     <div class="cap-card">
-      <div class="cap-icon">&#9678;</div>
-      <h3>LiDAR Array Deployment</h3>
-      <p>Millimeter-precision sensor positioning across all 6 draft stations simultaneously. No crew on barge deck.</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">&#9724;</div>
-      <h3>Point Cloud Processing</h3>
-      <p>Real-time 3D spatial data analysis with sub-inch accuracy. Millions of data points per scan cycle.</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">&#9670;</div>
-      <h3>Digital Twin Sync</h3>
-      <p>Live barge model updates reflect actual cargo distribution in real time. Continuous draft tracking.</p>
+      <div class="cap-icon">&#128247;</div>
+      <h3>LiDAR Draft Acquisition</h3>
+      <p>Rapid laser scanning of waterline at all six draft stations simultaneously. No crew deck exposure required.</p>
     </div>
     <div class="cap-card">
       <div class="cap-icon">&#9881;</div>
-      <h3>Automated Calculation</h3>
-      <p>AI-derived draft readings eliminate manual measurement error. Hydrostatic table integration built in.</p>
+      <h3>Point Cloud Processing</h3>
+      <p>AI converts raw LiDAR returns into a precision 3D model. Draft baseline established in under 60 seconds.</p>
     </div>
     <div class="cap-card">
-      <div class="cap-icon">&#9745;</div>
-      <h3>Regulatory Compliance</h3>
-      <p>Automated documentation meets USCG 46 CFR and IMO cargo survey standards. Audit-ready output.</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">&#8644;</div>
-      <h3>Fleet Integration</h3>
-      <p>API-ready data feeds connect directly to dispatch, ERP, and port management systems.</p>
+      <div class="cap-icon">&#128202;</div>
+      <h3>Digital Twin Sync</h3>
+      <p>Live displacement calculation as cargo loads. Trim, heel, and tonnage updated continuously throughout operations.</p>
     </div>
   </div>
 </section>
 
-<!-- 4 USE CASE CARDS -->
+<!-- USE CASES -->
 <section class="uc-section">
   <h2>Use Cases</h2>
   <div class="uc-grid">
-    <a href="/solutions/barge-drafting" class="uc-card">
-      <h3>Inland Waterway</h3>
-      <p>Mississippi River barge operations. Automated draft survey for hopper, tank, and deck barges.</p>
-      <span class="arrow">View Solution &rarr;</span>
+    <a class="uc-card" href="/solutions/barge-drafting">
+      <h3>Barge Draft Surveys</h3>
+      <p>Replace manual crew-based readings with autonomous LiDAR acquisition at Mississippi River terminals.</p>
+      <span class="arrow">&#8594; Learn more</span>
     </a>
-    <a href="/contact" class="uc-card">
-      <h3>Port Operations</h3>
-      <p>Container terminal and bulk cargo draft monitoring. Real-time tonnage verification at berth.</p>
-      <span class="arrow">Contact Us &rarr;</span>
-    </a>
-    <a href="/contact" class="uc-card">
-      <h3>Offshore Marine</h3>
-      <p>Platform supply vessel and offshore cargo management. Remote monitoring in open water.</p>
-      <span class="arrow">Contact Us &rarr;</span>
-    </a>
-    <a href="/contact" class="uc-card">
-      <h3>Fleet Management</h3>
-      <p>Multi-vessel operational intelligence. Centralized dashboard across the entire fleet.</p>
-      <span class="arrow">Contact Us &rarr;</span>
+    <a class="uc-card" href="/solutions/barge-drafting">
+      <h3>Cargo Verification</h3>
+      <p>Sub-inch accuracy across all six draft stations. USCG 46 CFR compliant documentation generated automatically.</p>
+      <span class="arrow">&#8594; Learn more</span>
     </a>
   </div>
 </section>
@@ -417,447 +410,241 @@
 
 <script>
 /* ============================================================
-   FREQ AI — CESIUM PLATFORM SIMULATION
+   FREQ AI — MAPBOX PLATFORM SIMULATION
    One file. No build step. No framework.
+   Mapbox GL JS v3.1.2
    ============================================================ */
+mapboxgl.accessToken = 'pk.eyJ1IjoiZHJlLWFyY2hpdGVjd' + 'CIsImEiOiJjbW1oM2Nta3owbWc3MnJzNjE4M25lem1vIn0.5EUljQj5UYUd96C0CGKz3A';
 
-/* Guard: if Cesium CDN failed to load */
-if (typeof Cesium === 'undefined') {
-  document.getElementById('cesiumContainer').innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94A3B8;font-family:monospace;font-size:14px;text-align:center;padding:2rem;">' +
-    'Cesium JS failed to load.<br>Check your network connection and reload.' +
-    '</div>';
-}
+const BARGE_LNG = -90.221234;
+const BARGE_LAT =  29.933830;
 
-/* Set token FIRST — before any Cesium calls */
-if (typeof Cesium !== 'undefined') {
-  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjMmRkMWRmNy05MDE0LTRmODEtODUzMC0wMzE0NmI5ZWU0MzEiLCJpZCI6Mzk5NDM1LCJpYXQiOjE3NzI5MTg3OTJ9.KecM4xfBnp9MjS4Dc-7cbk1_SkWgBqQ_kRhMsnkisn8';
-}
+const map = new mapboxgl.Map({
+  container: 'mapContainer',
+  style:     'mapbox://styles/dre-architect/cmmh71f70009301rx74nhabrc',
+  center:    [BARGE_LNG, BARGE_LAT],
+  zoom:       16.0,
+  pitch:      55,
+  bearing:    63.5,
+  antialias:  true,
+});
+
+map.scrollZoom.enable();
+map.dragRotate.enable();
+map.touchZoomRotate.enable();
 
 /* ---- Globals ---- */
-var activeStation = -1;
+let activeStationIdx = -1;
+let drafts     = { fp:3.24, fs:3.21, mp:3.28, ms:3.26, ap:3.31, as:3.29 };
+let cargo      = 0;
+let simPhase   = 0;
+let simPhaseMs = 0;
+let simState   = 'idle';
+let simTick    = null;
+let simSpeed   = 2;
+let manualStep = 0;
+let mobMarker  = null;
+let stationMarkers = [];
 
-function scrollToSim() {
-  document.getElementById('sim-section').scrollIntoView({ behavior:'smooth' });
-}
+const PHASE_DUR = [20000, 15000, 60000, 20000, 20000, 15000];
 
-/* ---- Manual Process Panel ---- */
-var MANUAL_STEPS = [
-  { title:'CREW DEPLOYMENT',     body:'Crew dispatched to barge deck. Active crane and loading equipment in zone. No automated monitoring.', warn:'\u26A0 Man-overboard risk: ACTIVE', wc:'red' },
-  { title:'FORE DRAFT READING',  body:'Visual read of painted draft mark at bow. Estimated to nearest half-inch. Radioed to shore operator.', warn:'\u26A0 Visual estimate accuracy: \u00B10.5 inch', wc:'amber' },
-  { title:'MIDSHIP READING',     body:'Crew walks to midship. Second reading taken and radioed. Additional exposure event.', warn:'\u26A0 Radio relay \u2014 compounding error risk', wc:'amber' },
-  { title:'AFT DRAFT READING',   body:'Crew walks to stern. Three readings now on paper. No digital trace.', warn:'\u26A0 Paper log \u2014 no digital audit trail', wc:'amber' },
-  { title:'SHORE CALCULATION',   body:'Shore operator manually calculates displacement. 45\u201390 minutes. No live data.', warn:'\u26A0 No real-time feedback during loading', wc:'amber' },
-  { title:'UNMONITORED LOADING', body:'Loading proceeds on pre-calculated targets. No monitoring. Periodic visual checks only.', warn:'\u26A0 UNMONITORED INTERVAL \u2014 drift undetected', wc:'red' },
-  { title:'POST-LOAD REPEAT',    body:'Entire manual process repeats for final survey. Total: 3\u20134 hours. Paper report submitted.', warn:'\u2717 TOTAL: ~4 HRS | ERROR: 1\u20133% | MOB: THROUGHOUT', wc:'red' },
+const PHASES = [
+  { name:'Phase 1: LiDAR Scanning',        desc:'Sensors emit rapid laser pulses — mapping barge position and waterline relative to the Mississippi River surface.' },
+  { name:'Phase 2: Point Cloud Generation', desc:'AI processes pulse returns into a dense 3D point cloud. Barge dimensions and draft baseline captured.' },
+  { name:'Phase 3: Active Loading + Sync',  desc:'Digital twin synchronizes continuously as cargo loads. Cargo mass, trim, and heel calculated in real time.' },
+  { name:'Phase 4: Cargo Verification',     desc:'AI cross-references draft readings with hydrostatic displacement tables. Tonnage confirmed. Deviations flagged.' },
+  { name:'Phase 5: Post-Load Assessment',   desc:'Final loaded draft acquired at all 6 stations. Stability analysis complete. All metrics nominal.' },
+  { name:'Phase 6: Final Survey & Report',  desc:'Survey complete. USCG-46 CFR documentation compiled, timestamped, and logged to digital record.' },
 ];
-var manualStep = 0;
 
-function renderManualStep() {
-  var s = MANUAL_STEPS[manualStep];
-  document.getElementById('manualBody').innerHTML =
-    '<div class="step-num">STEP ' + (manualStep+1) + ' OF 7</div>' +
-    '<div class="step-title">' + s.title + '</div>' +
-    '<p class="step-body">' + s.body + '</p>' +
-    '<div class="step-warn ' + s.wc + '">' + s.warn + '</div>';
-  document.getElementById('stepInd').textContent = 'STEP ' + (manualStep+1) + ' OF 7';
-  document.getElementById('btnPrevStep').disabled = manualStep === 0;
-  document.getElementById('btnNextStep').disabled = manualStep === 6;
-}
-function prevStep() { if (manualStep > 0) { manualStep--; renderManualStep(); } }
-function nextStep() { if (manualStep < 6) { manualStep++; renderManualStep(); } }
-
-/* ---- Phase Definitions ---- */
-var PHASES = [
-  { name:'Phase 1: LiDAR Scanning',        desc:'Sensors emit laser pulses mapping barge position relative to the waterway surface.' },
-  { name:'Phase 2: Point Cloud Generation', desc:'AI processes pulses into a high-density point cloud. Dimensions and waterline captured.' },
-  { name:'Phase 3: Active Loading + Sync',  desc:'Digital twin synchronizes continuously. Cargo mass calculated in real time.' },
-  { name:'Phase 4: Cargo Verification',     desc:'AI integrates draft with hydrostatic tables. Tonnage confirmed. Deviation alerts active.' },
-  { name:'Phase 5: Post-Load Assessment',   desc:'Final draft acquired. Stability complete. All metrics nominal.' },
-  { name:'Phase 6: Final Survey & Report',  desc:'Survey complete. USCG-46 CFR documentation compiled and logged.' },
+const MANUAL_STEPS = [
+  { title:'CREW DEPLOYMENT',     body:'Crew dispatched to barge deck. Active loading equipment operating. No automated monitoring in zone.',              warn:'\u26A0 Man-overboard risk: ACTIVE throughout',         wc:'red'   },
+  { title:'FORE DRAFT READING',  body:'Visual read of painted draft mark at bow. Estimated to nearest half-inch. Radioed to shore operator.',             warn:'\u26A0 Visual estimate: \u00B10.5 inch accuracy',     wc:'amber' },
+  { title:'MIDSHIP READING',     body:'Crew walks to midship. Second reading taken. Additional crew exposure event.',                                     warn:'\u26A0 Radio relay \u2014 compounding error risk',    wc:'amber' },
+  { title:'AFT DRAFT READING',   body:'Crew walks to stern. All three readings on paper log. No digital trace, no timestamp.',                            warn:'\u26A0 Paper log \u2014 no digital audit trail',      wc:'amber' },
+  { title:'SHORE CALCULATION',   body:'Shore operator manually calculates displacement. 45\u201390 minutes. No live data during this window.',             warn:'\u26A0 No real-time feedback during loading',         wc:'amber' },
+  { title:'UNMONITORED LOADING', body:'Loading continues on pre-calculated targets. No active monitoring. Periodic visual checks only.',                  warn:'\u26A0 Unmonitored interval \u2014 drift undetected', wc:'red'   },
+  { title:'POST-LOAD REPEAT',    body:'Entire manual process repeats for post-load survey. Paper report submitted after completion.',                      warn:'\u2717 TOTAL: ~4 hrs | Error: 1\u20133% | MOB: throughout', wc:'red' },
 ];
-var PHASE_DUR = [20000, 15000, 60000, 20000, 20000, 15000];
-
-/* ---- Sim State ---- */
-var drafts     = { fp:3.24, fs:3.21, mp:3.28, ms:3.26, ap:3.31, as:3.29 };
-var cargo      = 0;
-var simPhase   = 0;
-var simPhaseMs = 0;
-var simState   = 'idle';
-var simTick    = null;
-var simSpeed   = 2;
-
-/* ---- Render helpers ---- */
-function renderPhaseBar() {
-  var html = '';
-  for (var i = 0; i < 6; i++) {
-    var cls = i < simPhase ? 'done' : (i === simPhase && simState === 'running' ? 'active' : 'pending');
-    html += '<div class="pdot ' + cls + '">' + (i+1) + '</div>';
-    if (i < 5) html += '<div class="pline' + (i < simPhase ? ' done' : '') + '"></div>';
-  }
-  document.getElementById('phaseTrack').innerHTML = html;
-  var ph = PHASES[Math.min(simPhase, 5)];
-  document.getElementById('pdName').textContent = ph.name;
-  document.getElementById('pdText').textContent = ph.desc;
-}
-
-function syncUI() {
-  var idle     = simState === 'idle';
-  var running  = simState === 'running';
-  var paused   = simState === 'paused';
-  var complete = simState === 'complete';
-  document.getElementById('btnStart').style.display  = (idle || complete) ? 'inline-block' : 'none';
-  document.getElementById('btnStart').textContent    = complete ? '\u21BA RUN AGAIN' : '\u25B6 INITIATE SEQUENCE';
-  document.getElementById('btnPause').style.display  = running ? 'inline-block' : 'none';
-  document.getElementById('btnResume').style.display = paused  ? 'inline-block' : 'none';
-  document.getElementById('btnReset').disabled       = idle;
-  var dots   = { idle:'dot-idle', running:'dot-running', paused:'dot-paused', complete:'dot-complete', alert:'dot-alert' };
-  var labels = { idle:'SYSTEM READY', running:'SEQUENCE ACTIVE', paused:'SEQUENCE PAUSED', complete:'SURVEY COMPLETE', alert:'SAFETY ALERT \u2014 E-STOP' };
-  document.getElementById('statusDot').className    = 'status-dot ' + (dots[simState] || 'dot-idle');
-  document.getElementById('statusLabel').textContent = labels[simState] || 'SYSTEM READY';
-}
-
-function updateHUD() {
-  document.getElementById('hFP').textContent    = drafts.fp.toFixed(2) + ' ft';
-  document.getElementById('hFS').textContent    = drafts.fs.toFixed(2) + ' ft';
-  document.getElementById('hMP').textContent    = drafts.mp.toFixed(2) + ' ft';
-  document.getElementById('hMS').textContent    = drafts.ms.toFixed(2) + ' ft';
-  document.getElementById('hAP').textContent    = drafts.ap.toFixed(2) + ' ft';
-  document.getElementById('hAS').textContent    = drafts.as.toFixed(2) + ' ft';
-  document.getElementById('hCargo').textContent = cargo.toFixed(1) + ' T';
-  document.getElementById('hTrim').textContent  = (drafts.ap - drafts.fp).toFixed(2) + ' ft';
-  document.getElementById('hHeel').textContent  = Math.abs(drafts.mp - drafts.ms).toFixed(2) + '\u00B0';
-  document.getElementById('hudPhase').textContent = '\u25CF PHASE ' + (simPhase + 1) + '/6';
-}
-
-/* ---- Init render ---- */
-renderManualStep();
-renderPhaseBar();
-syncUI();
 
 /* ============================================================
-   CESIUM INIT — async
+   ALL SCENE SETUP INSIDE map.on('load')
    ============================================================ */
-async function init() {
-  if (typeof Cesium === 'undefined') return;
+map.on('load', () => {
 
-  /* Show loading overlay */
-  var loadingEl = document.createElement('div');
-  loadingEl.id = 'cesium-loading';
-  loadingEl.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#080C18;z-index:5;color:#94A3B8;font-family:monospace;font-size:13px;';
-  loadingEl.textContent = 'Initializing simulation...';
-  document.getElementById('cesiumContainer').style.position = 'relative';
-  document.getElementById('cesiumContainer').appendChild(loadingEl);
+  /* ---- Barge geometry ---- */
+  const halfLen = 45  / 96000 / 2;   // lon extent at 30°N
+  const halfWid = 10  / 111000 / 2;  // lat extent
 
-  /* Terrain provider — try async first, then sync fallback, then ellipsoid */
-  var terrainProvider;
-  try {
-    if (typeof Cesium.createWorldTerrainAsync === 'function') {
-      terrainProvider = await Cesium.createWorldTerrainAsync();
-    } else if (typeof Cesium.createWorldTerrain === 'function') {
-      terrainProvider = Cesium.createWorldTerrain();
-    } else {
-      terrainProvider = new Cesium.EllipsoidTerrainProvider();
-    }
-  } catch(e) {
-    console.warn('Terrain provider fallback:', e);
-    terrainProvider = new Cesium.EllipsoidTerrainProvider();
-  }
-
-  var viewer = new Cesium.Viewer('cesiumContainer', {
-    terrainProvider:      terrainProvider,
-    baseLayerPicker:      false,
-    geocoder:             false,
-    homeButton:           false,
-    sceneModePicker:      false,
-    navigationHelpButton: false,
-    animation:            false,
-    timeline:             false,
-    fullscreenButton:     false,
-    vrButton:             false,
-    infoBox:              false,
-    selectionIndicator:   false,
-    creditContainer:      document.createElement('div'),
-  });
-
-  /* Scene atmosphere */
-  viewer.scene.skyBox.show        = true;
-  viewer.scene.sun.show           = true;
-  viewer.scene.moon.show          = false;
-  viewer.scene.skyAtmosphere.show = true;
-  viewer.scene.backgroundColor    = Cesium.Color.fromCssColorString('#080C18');
-
-  /* Globe always visible — satellite imagery guaranteed to render */
-  viewer.scene.globe.show           = true;
-  viewer.scene.globe.enableLighting = false;
-
-  /* Use Bing Aerial with Labels — works with any Ion token */
-  viewer.imageryLayers.removeAll();
-  viewer.imageryLayers.addImageryProvider(
-    new Cesium.IonImageryProvider({ assetId: 3 })
-  );
-
-  /* No camera drift */
-  viewer.scene.screenSpaceCameraController.inertiaSpin  = 0;
-  viewer.scene.screenSpaceCameraController.inertiaZoom  = 0;
-  viewer.scene.screenSpaceCameraController.inertiaTrans = 0;
-
-  /* Remove double-click select */
-  viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(
-    Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
-  );
-
-  /* Remove loading overlay */
-  var loadEl = document.getElementById('cesium-loading');
-  if (loadEl) loadEl.remove();
-
-  /* ---- Scene Constants ---- */
-  var BARGE_LON = -89.7819;
-  var BARGE_LAT =  30.2752;
-  var BARGE_ALT =   2.0;
-
-  /* ---- Barge Entity ---- */
-  var bargeEntity = viewer.entities.add({
-    name: 'BARGE-402',
-    position: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT),
-    box: {
-      dimensions:   new Cesium.Cartesian3(45.0, 10.0, 3.0),
-      material:     Cesium.Color.fromCssColorString('#1E293B'),
-      outline:      true,
-      outlineColor: Cesium.Color.fromCssColorString('#7C3AED'),
-    },
-    label: {
-      text:        'BARGE-402',
-      font:        '13px monospace',
-      fillColor:   Cesium.Color.fromCssColorString('#06B6D4'),
-      pixelOffset: new Cesium.Cartesian2(0, -44),
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-      showBackground:    true,
-      backgroundColor:   Cesium.Color.fromCssColorString('#080C18').withAlpha(0.88),
-      backgroundPadding: new Cesium.Cartesian2(8, 4),
-    }
-  });
-
-  /* ---- 6 Draft Stations ---- */
-  var STATIONS = [
-    { id:'FP', label:'Fore Port',      lon: BARGE_LON - 0.000190, lat: BARGE_LAT - 0.000040 },
-    { id:'FS', label:'Fore Starboard', lon: BARGE_LON - 0.000190, lat: BARGE_LAT + 0.000040 },
-    { id:'MP', label:'Mid Port',       lon: BARGE_LON,            lat: BARGE_LAT - 0.000040 },
-    { id:'MS', label:'Mid Starboard',  lon: BARGE_LON,            lat: BARGE_LAT + 0.000040 },
-    { id:'AP', label:'Aft Port',       lon: BARGE_LON + 0.000190, lat: BARGE_LAT - 0.000040 },
-    { id:'AS', label:'Aft Starboard',  lon: BARGE_LON + 0.000190, lat: BARGE_LAT + 0.000040 },
+  const bargeCoords = [
+    [BARGE_LNG - halfLen, BARGE_LAT - halfWid],
+    [BARGE_LNG + halfLen, BARGE_LAT - halfWid],
+    [BARGE_LNG + halfLen, BARGE_LAT + halfWid],
+    [BARGE_LNG - halfLen, BARGE_LAT + halfWid],
+    [BARGE_LNG - halfLen, BARGE_LAT - halfWid],
   ];
 
-  var markerEntities = STATIONS.map(function(s) {
-    return viewer.entities.add({
-      name: s.id,
-      position: Cesium.Cartesian3.fromDegrees(s.lon, s.lat, BARGE_ALT + 2.0),
-      ellipsoid: {
-        radii:    new Cesium.Cartesian3(0.7, 0.7, 0.7),
-        material: Cesium.Color.fromCssColorString('#64748B'),
-      },
-      label: {
-        text:        s.id,
-        font:        '11px monospace',
-        fillColor:   Cesium.Color.fromCssColorString('#94A3B8'),
-        pixelOffset: new Cesium.Cartesian2(0, -16),
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
-      }
+  map.addSource('barge', {
+    type: 'geojson',
+    data: {
+      type: 'Feature',
+      properties: { height: 3, base: 0 },
+      geometry: { type: 'Polygon', coordinates: [bargeCoords] }
+    }
+  });
+
+  map.addLayer({
+    id:     'barge-fill',
+    type:   'fill-extrusion',
+    source: 'barge',
+    paint: {
+      'fill-extrusion-color':   '#1E293B',
+      'fill-extrusion-height':  3,
+      'fill-extrusion-base':    0,
+      'fill-extrusion-opacity': 0.95,
+    }
+  });
+
+  map.addLayer({
+    id:     'barge-outline',
+    type:   'line',
+    source: 'barge',
+    paint:  { 'line-color': '#7C3AED', 'line-width': 2.5 }
+  });
+
+  /* ---- Barge label ---- */
+  const labelEl = document.createElement('div');
+  labelEl.textContent = 'BARGE-402';
+  labelEl.style.cssText = [
+    'font-family:"JetBrains Mono",monospace',
+    'font-size:12px',
+    'font-weight:700',
+    'color:#06B6D4',
+    'background:rgba(8,12,24,0.88)',
+    'border:1px solid #1E293B',
+    'padding:3px 8px',
+    'border-radius:4px',
+    'pointer-events:none',
+    'white-space:nowrap',
+  ].join(';');
+  new mapboxgl.Marker({ element: labelEl, anchor: 'bottom', offset: [0, -10] })
+    .setLngLat([BARGE_LNG, BARGE_LAT]).addTo(map);
+
+  /* ---- Draft stations ---- */
+  const STATIONS = [
+    { id:'FP', label:'Fore Port',      lng: BARGE_LNG - halfLen*0.85, lat: BARGE_LAT - halfWid*0.7 },
+    { id:'FS', label:'Fore Starboard', lng: BARGE_LNG - halfLen*0.85, lat: BARGE_LAT + halfWid*0.7 },
+    { id:'MP', label:'Mid Port',       lng: BARGE_LNG,                lat: BARGE_LAT - halfWid*0.7 },
+    { id:'MS', label:'Mid Starboard',  lng: BARGE_LNG,                lat: BARGE_LAT + halfWid*0.7 },
+    { id:'AP', label:'Aft Port',       lng: BARGE_LNG + halfLen*0.85, lat: BARGE_LAT - halfWid*0.7 },
+    { id:'AS', label:'Aft Starboard',  lng: BARGE_LNG + halfLen*0.85, lat: BARGE_LAT + halfWid*0.7 },
+  ];
+
+  stationMarkers = STATIONS.map((s, i) => {
+    const el = document.createElement('div');
+    el.className   = 'station-marker';
+    el.dataset.id  = s.id;
+    el.textContent = s.id;
+    el.addEventListener('click', () => {
+      activeStationIdx = i;
+      showStationCard(s);
     });
+    return {
+      marker: new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([s.lng, s.lat]).addTo(map),
+      el,
+      s,
+    };
   });
 
-  /* ---- Camera Start ---- */
-  viewer.camera.setView({
-    destination: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT - 0.003, 200),
-    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-28), roll: 0 }
-  });
-
-  /* ---- Camera Views ---- */
-  var VIEWS = {
-    orbit:    { d: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT - 0.003, 200),  o: { heading:0, pitch:Cesium.Math.toRadians(-28), roll:0 } },
-    overhead: { d: Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, 350),           o: { heading:0, pitch:Cesium.Math.toRadians(-90), roll:0 } },
-    side:     { d: Cesium.Cartesian3.fromDegrees(BARGE_LON - 0.003, BARGE_LAT, 25),    o: { heading:Cesium.Math.toRadians(90), pitch:Cesium.Math.toRadians(-5), roll:0 } },
-    fore:     { d: Cesium.Cartesian3.fromDegrees(BARGE_LON - 0.004, BARGE_LAT, 15),    o: { heading:0, pitch:Cesium.Math.toRadians(-10), roll:0 } },
-    aft:      { d: Cesium.Cartesian3.fromDegrees(BARGE_LON + 0.004, BARGE_LAT, 15),    o: { heading:Cesium.Math.toRadians(180), pitch:Cesium.Math.toRadians(-10), roll:0 } },
+  /* ---- Camera views ---- */
+  const VIEWS = {
+    orbit:    { center:[BARGE_LNG, BARGE_LAT], zoom:16.0, pitch:55,  bearing:63.5  },
+    overhead: { center:[BARGE_LNG, BARGE_LAT], zoom:17.5, pitch:0,   bearing:0     },
+    side:     { center:[BARGE_LNG, BARGE_LAT], zoom:17.0, pitch:70,  bearing:153.5 },
+    fore:     { center:[BARGE_LNG - 0.0004, BARGE_LAT], zoom:17.5, pitch:65, bearing:63.5  },
+    aft:      { center:[BARGE_LNG + 0.0004, BARGE_LAT], zoom:17.5, pitch:65, bearing:243.5 },
   };
 
-  window.flyTo = function(name) {
-    var v = VIEWS[name]; if (!v) return;
-    viewer.camera.flyTo({ destination:v.d, orientation:v.o, duration:1.5, easingFunction:Cesium.EasingFunction.CUBIC_IN_OUT });
-    document.querySelectorAll('.cam-btn').forEach(function(b) { b.classList.remove('active'); });
-    var btn = document.getElementById('cam-' + name);
+  window.flyToView = function(name) {
+    const v = VIEWS[name]; if (!v) return;
+    map.flyTo({ ...v, duration:1500, essential:true });
+    document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('cam-' + name);
     if (btn) btn.classList.add('active');
-    document.getElementById('activeCam').textContent = 'Active: ' + name.toUpperCase();
+    document.getElementById('activeCam').textContent = 'VIEW: ' + name.toUpperCase();
   };
 
   window.flyToStation = function(idx) {
-    activeStation = ((idx % 6) + 6) % 6;
-    var s = STATIONS[activeStation];
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(s.lon, s.lat - 0.0008, 20),
-      orientation: { heading:0, pitch:Cesium.Math.toRadians(-18), roll:0 },
-      duration: 1.5,
+    activeStationIdx = ((idx % 6) + 6) % 6;
+    const sm = stationMarkers[activeStationIdx];
+    map.flyTo({
+      center: [sm.s.lng, sm.s.lat],
+      zoom: 19, pitch: 60, bearing: 63.5,
+      duration: 1500, essential: true,
     });
-    document.querySelectorAll('.cam-btn').forEach(function(b) { b.classList.remove('active'); });
-    var btn = document.getElementById('cam-station');
-    if (btn) btn.classList.add('active');
-    document.getElementById('activeCam').textContent = 'Active: STATION ' + s.id;
-    showStationCard(activeStation);
+    showStationCard(sm.s);
   };
 
-  /* ---- Keyboard Shortcuts ---- */
-  document.addEventListener('keydown', function(e) {
+  /* ---- Keyboard shortcuts ---- */
+  document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.code === 'Digit1') flyTo('orbit');
-    if (e.code === 'Digit2') flyTo('overhead');
-    if (e.code === 'Digit3') flyTo('side');
-    if (e.code === 'Digit4') flyTo('fore');
-    if (e.code === 'Digit5') flyTo('aft');
-    if (e.code === 'Digit6') flyToStation(activeStation + 1);
+    if (e.code === 'Digit1') flyToView('orbit');
+    if (e.code === 'Digit2') flyToView('overhead');
+    if (e.code === 'Digit3') flyToView('side');
+    if (e.code === 'Digit4') flyToView('fore');
+    if (e.code === 'Digit5') flyToView('aft');
+    if (e.code === 'Digit6') flyToStation(activeStationIdx + 1);
     if (e.code === 'Escape') closeStationCard();
   });
 
-  /* ---- Station Card ---- */
-  function showStationCard(idx) {
-    var s = STATIONS[idx];
-    var key = s.id.toLowerCase();
-    document.getElementById('scTitle').textContent   = 'DRAFT STATION \u2014 ' + s.label.toUpperCase();
+  /* ---- Station card ---- */
+  function showStationCard(s) {
+    const key = s.id.toLowerCase();
+    document.getElementById('scTitle').textContent   = s.label.toUpperCase() + ' STATION';
     document.getElementById('scId').textContent      = s.id;
     document.getElementById('scReading').textContent = (drafts[key] || 3.24).toFixed(2) + ' ft';
-    document.getElementById('scStatus').textContent  = simState === 'complete' ? 'VERIFIED' : 'NOMINAL';
+    document.getElementById('scStatus').textContent  =
+      simState === 'running' ? 'ACQUIRING' : simState === 'complete' ? 'LOCKED' : 'STANDBY';
     document.getElementById('stationCard').style.display = 'block';
   }
+
   window.closeStationCard = function() {
     document.getElementById('stationCard').style.display = 'none';
+    activeStationIdx = -1;
   };
-  window.prevStation = function() { flyToStation(activeStation - 1); };
-  window.nextStation = function() { flyToStation(activeStation + 1); };
+  window.prevStation = () => flyToStation(activeStationIdx - 1);
+  window.nextStation = () => flyToStation(activeStationIdx + 1);
 
-  /* ---- Reset Markers ---- */
-  function resetMarkers() {
-    markerEntities.forEach(function(m) {
-      m.ellipsoid.material = Cesium.Color.fromCssColorString('#64748B');
-    });
-  }
-
-  /* ---- Speed ---- */
-  window.setSpeed = function(s) {
-    simSpeed = s;
-    document.querySelectorAll('.spd-btn').forEach(function(b) {
-      b.classList.remove('active');
-    });
-    document.querySelectorAll('.spd-btn').forEach(function(b) {
-      if (b.textContent.trim() === s + 'x') b.classList.add('active');
-    });
-  };
-
-  /* ---- Tick ---- */
-  function tick() {
-    if (simState !== 'running') return;
-    simPhaseMs += 100 * simSpeed;
-    var dur  = PHASE_DUR[simPhase];
-    var prog = Math.min(simPhaseMs / dur, 1);
-
-    /* Phase 3 (index 2): Active Loading */
-    if (simPhase === 2) {
-      var rise = 3.24 + (9.84 - 3.24) * prog;
-      drafts = {
-        fp: rise - 0.02,
-        fs: rise - 0.06,
-        mp: rise + 0.07,
-        ms: rise + 0.05,
-        ap: rise + 0.19,
-        as: rise + 0.17
-      };
-      cargo = 1482.6 * prog;
-
-      /* Barge sinks */
-      bargeEntity.position = Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT - 1.5 * prog);
-
-      /* Markers update */
-      markerEntities.forEach(function(m, i) {
-        m.position = Cesium.Cartesian3.fromDegrees(STATIONS[i].lon, STATIONS[i].lat, (BARGE_ALT - 1.5 * prog) + 2.0);
-        var t = i / 6;
-        if (prog > t + 0.15) {
-          m.ellipsoid.material = Cesium.Color.fromCssColorString('#10B981');
-        } else if (prog > t) {
-          m.ellipsoid.material = Cesium.Color.fromCssColorString('#06B6D4');
-        }
-      });
-    }
-
-    /* Slight jitter on readings for realism */
-    if (Math.random() < 0.03) {
-      var keys = ['fp','fs','mp','ms','ap','as'];
-      keys.forEach(function(k) { drafts[k] += (Math.random() - 0.5) * 0.04; });
-    }
-
-    updateHUD();
-
-    /* Phase advance */
-    if (simPhaseMs >= dur) {
-      simPhaseMs = 0;
-      simPhase++;
-      if (simPhase >= 6) { completeSim(); return; }
-      renderPhaseBar();
-    }
-  }
-
-  function completeSim() {
-    clearInterval(simTick);
-    simState = 'complete';
-    markerEntities.forEach(function(m) {
-      m.ellipsoid.material = Cesium.Color.fromCssColorString('#10B981');
-    });
-    syncUI();
-    renderPhaseBar();
-    document.getElementById('completionCard').style.display = 'block';
-    document.getElementById('completionCard').scrollIntoView({ behavior:'smooth', block:'center' });
-  }
-
-  /* ---- MOB Demo ---- */
-  var mobEntity = null;
-
+  /* ---- MOB demo ---- */
   window.triggerMOB = function() {
-    if (simState === 'alert') return;
-    simState = 'alert';
-    clearInterval(simTick);
-    mobEntity = viewer.entities.add({
-      position: Cesium.Cartesian3.fromDegrees(BARGE_LON - 0.00008, BARGE_LAT - 0.00006, BARGE_ALT - 0.5),
-      ellipsoid: {
-        radii:    new Cesium.Cartesian3(1.2, 1.2, 1.2),
-        material: Cesium.Color.fromCssColorString('#EF4444'),
-      }
-    });
+    if (simState === 'running') { simState = 'alert'; clearInterval(simTick); }
+    else simState = 'alert';
+    const el = document.createElement('div');
+    el.style.cssText = 'width:22px;height:22px;border-radius:50%;background:#EF4444;border:3px solid #fff;animation:pulse-fast 0.4s infinite;';
+    if (mobMarker) mobMarker.remove();
+    mobMarker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([BARGE_LNG - 0.00008, BARGE_LAT - 0.00006]).addTo(map);
     document.getElementById('mobBanner').style.display = 'flex';
     syncUI();
-    setTimeout(function() {
-      document.getElementById('btnResetMob').style.display = 'inline-block';
-    }, 5000);
+    setTimeout(() => { document.getElementById('btnResetMob').style.display = 'inline-block'; }, 5000);
   };
 
   window.resetMOB = function() {
-    if (mobEntity) { viewer.entities.remove(mobEntity); mobEntity = null; }
-    document.getElementById('mobBanner').style.display   = 'none';
+    if (mobMarker) { mobMarker.remove(); mobMarker = null; }
+    document.getElementById('mobBanner').style.display = 'none';
     document.getElementById('btnResetMob').style.display = 'none';
     simState = 'paused';
     syncUI();
   };
 
-  /* ---- Sim Controls ---- */
+  /* ---- Sim controls ---- */
   window.simStart = function() {
     if (simState !== 'idle' && simState !== 'complete') return;
-    simState   = 'running';
-    simPhase   = 0;
-    simPhaseMs = 0;
-    cargo      = 0;
-    manualStep = 0;
+    simState = 'running'; simPhase = 0; simPhaseMs = 0; cargo = 0; manualStep = 0;
     drafts = { fp:3.24, fs:3.21, mp:3.28, ms:3.26, ap:3.31, as:3.29 };
-    bargeEntity.position = Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT);
-    markerEntities.forEach(function(m, i) {
-      m.position = Cesium.Cartesian3.fromDegrees(STATIONS[i].lon, STATIONS[i].lat, BARGE_ALT + 2.0);
-    });
     resetMarkers();
+    map.setPaintProperty('barge-fill', 'fill-extrusion-height', 3);
     document.getElementById('completionCard').style.display = 'none';
     document.getElementById('mobBanner').style.display      = 'none';
     syncUI(); renderPhaseBar(); renderManualStep(); updateHUD();
@@ -866,50 +653,138 @@ async function init() {
 
   window.simPause = function() {
     if (simState !== 'running') return;
-    simState = 'paused';
-    clearInterval(simTick);
-    syncUI();
+    simState = 'paused'; clearInterval(simTick); syncUI();
   };
 
   window.simResume = function() {
     if (simState !== 'paused') return;
-    simState = 'running';
-    simTick  = setInterval(tick, 100);
-    syncUI();
+    simState = 'running'; simTick = setInterval(tick, 100); syncUI();
   };
 
   window.simReset = function() {
     clearInterval(simTick);
-    simState   = 'idle';
-    simPhase   = 0;
-    simPhaseMs = 0;
-    cargo      = 0;
-    manualStep = 0;
+    simState = 'idle'; simPhase = 0; simPhaseMs = 0; cargo = 0; manualStep = 0;
     drafts = { fp:3.24, fs:3.21, mp:3.28, ms:3.26, ap:3.31, as:3.29 };
-    bargeEntity.position = Cesium.Cartesian3.fromDegrees(BARGE_LON, BARGE_LAT, BARGE_ALT);
-    markerEntities.forEach(function(m, i) {
-      m.position = Cesium.Cartesian3.fromDegrees(STATIONS[i].lon, STATIONS[i].lat, BARGE_ALT + 2.0);
-    });
     resetMarkers();
+    map.setPaintProperty('barge-fill', 'fill-extrusion-height', 3);
     document.getElementById('completionCard').style.display = 'none';
     document.getElementById('mobBanner').style.display      = 'none';
     document.getElementById('btnResetMob').style.display    = 'none';
     syncUI(); renderPhaseBar(); renderManualStep(); updateHUD();
   };
 
-} /* end init() */
+  window.setSpeed = function(s) {
+    simSpeed = s;
+    document.querySelectorAll('.spd-btn').forEach((b, i) => {
+      b.classList.toggle('active', [1, 2, 4][i] === s);
+    });
+  };
 
-init().catch(function(err) {
-  console.error('Cesium init error:', err);
-  var loadEl = document.getElementById('cesium-loading');
-  if (loadEl) loadEl.textContent = 'Simulation failed to initialize. Check console for details.';
-  var container = document.getElementById('cesiumContainer');
-  if (container && !loadEl) {
-    container.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#EF4444;font-family:monospace;font-size:13px;text-align:center;padding:2rem;">' +
-      'Cesium initialization error.<br>' + (err.message || err) + '</div>';
+  /* ---- Tick ---- */
+  function tick() {
+    if (simState !== 'running') return;
+    simPhaseMs += 100 * simSpeed;
+    const dur  = PHASE_DUR[simPhase];
+    const prog = Math.min(simPhaseMs / dur, 1);
+
+    if (simPhase === 2) {
+      const rise = 3.24 + (9.84 - 3.24) * prog;
+      drafts = { fp:rise-0.02, fs:rise-0.06, mp:rise+0.07, ms:rise+0.05, ap:rise+0.19, as:rise+0.17 };
+      cargo  = 1482.6 * prog;
+      map.setPaintProperty('barge-fill', 'fill-extrusion-height', 3 + 1.5 * prog);
+      stationMarkers.forEach(({ el }, i) => {
+        const t = i / 6;
+        if (prog > t + 0.15)    el.className = 'station-marker locked';
+        else if (prog > t)      el.className = 'station-marker active';
+      });
+    }
+
+    if (Math.random() < 0.03) {
+      Object.keys(drafts).forEach(k => { drafts[k] += (Math.random() - 0.5) * 0.04; });
+    }
+
+    updateHUD();
+
+    if (simPhaseMs >= dur) {
+      simPhaseMs = 0; simPhase++;
+      if (simPhase >= 6) { completeSim(); return; }
+      renderPhaseBar(); renderManualStep();
+    }
   }
-});
+
+  function completeSim() {
+    clearInterval(simTick); simState = 'complete';
+    stationMarkers.forEach(({ el }) => { el.className = 'station-marker locked'; });
+    syncUI(); renderPhaseBar();
+    document.getElementById('completionCard').style.display = 'block';
+    document.getElementById('completionCard').scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+
+  function resetMarkers() {
+    stationMarkers.forEach(({ el }) => { el.className = 'station-marker'; });
+  }
+
+  /* ---- UI helpers ---- */
+  function updateHUD() {
+    document.getElementById('hFP').textContent    = drafts.fp.toFixed(2) + ' ft';
+    document.getElementById('hFS').textContent    = drafts.fs.toFixed(2) + ' ft';
+    document.getElementById('hMP').textContent    = drafts.mp.toFixed(2) + ' ft';
+    document.getElementById('hMS').textContent    = drafts.ms.toFixed(2) + ' ft';
+    document.getElementById('hAP').textContent    = drafts.ap.toFixed(2) + ' ft';
+    document.getElementById('hAS').textContent    = drafts.as.toFixed(2) + ' ft';
+    document.getElementById('hCargo').textContent = cargo.toFixed(1) + ' T';
+    document.getElementById('hTrim').textContent  = (drafts.ap - drafts.fp).toFixed(2) + ' ft';
+    document.getElementById('hHeel').textContent  = Math.abs(drafts.mp - drafts.ms).toFixed(2) + '\u00b0';
+    document.getElementById('hudPhase').textContent = '\u25cf PHASE ' + (simPhase + 1) + '/6';
+  }
+
+  function renderPhaseBar() {
+    document.getElementById('phaseTrack').innerHTML = PHASES.map((p, i) => {
+      const cls  = i < simPhase ? 'done' : (i === simPhase && simState === 'running' ? 'active' : '');
+      const line = i < 5 ? `<div class="pline${i < simPhase ? ' done' : ''}"></div>` : '';
+      return `<div class="pdot ${cls}">${i + 1}</div>${line}`;
+    }).join('');
+    const ph = PHASES[Math.min(simPhase, 5)];
+    document.getElementById('pdName').textContent = ph.name;
+    document.getElementById('pdText').textContent = ph.desc;
+  }
+
+  function renderManualStep() {
+    const s = MANUAL_STEPS[Math.min(manualStep, 6)];
+    document.getElementById('manualBody').innerHTML =
+      `<div class="step-num">STEP ${manualStep + 1} OF 7</div>` +
+      `<div class="step-title">${s.title}</div>` +
+      `<p class="step-body">${s.body}</p>` +
+      `<div class="step-warn ${s.wc}">${s.warn}</div>`;
+    document.getElementById('stepInd').textContent  = `STEP ${manualStep + 1} OF 7`;
+    document.getElementById('btnPrevStep').disabled = manualStep === 0;
+    document.getElementById('btnNextStep').disabled = manualStep === 6;
+  }
+
+  function syncUI() {
+    const idle = simState === 'idle', running = simState === 'running',
+          paused = simState === 'paused', complete = simState === 'complete';
+    document.getElementById('btnStart').style.display  = (idle || complete) ? 'inline-block' : 'none';
+    document.getElementById('btnStart').textContent    = complete ? '\u21ba RUN AGAIN' : '\u25b6\u00a0 INITIATE SEQUENCE';
+    document.getElementById('btnPause').style.display  = running  ? 'inline-block' : 'none';
+    document.getElementById('btnResume').style.display = paused   ? 'inline-block' : 'none';
+    document.getElementById('btnReset').disabled       = idle;
+    const DOTS = { idle:'dot-idle', running:'dot-running', paused:'dot-paused', complete:'dot-complete', alert:'dot-alert' };
+    const LBLS = { idle:'SYSTEM READY', running:'SEQUENCE ACTIVE', paused:'PAUSED', complete:'SURVEY COMPLETE', alert:'E-STOP ACTIVE' };
+    document.getElementById('statusDot').className   = 'status-dot ' + (DOTS[simState] || 'dot-idle');
+    document.getElementById('statusLabel').textContent = LBLS[simState] || 'SYSTEM READY';
+  }
+
+  window.prevStep = () => { if (manualStep > 0) { manualStep--; renderManualStep(); } };
+  window.nextStep = () => { if (manualStep < 6) { manualStep++; renderManualStep(); } };
+
+  /* ---- Initial render — NOTHING moves ---- */
+  renderManualStep();
+  renderPhaseBar();
+  syncUI();
+  updateHUD();
+
+}); /* end map.on('load') */
 </script>
 </body>
 </html>
