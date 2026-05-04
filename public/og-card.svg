@@ -1,0 +1,26 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#07070C"/>
+  <rect x="0" y="0" width="1200" height="630" fill="none" stroke="#1C1C2A" stroke-width="2"/>
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(28,28,42,0.3)" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <!-- Brand mark -->
+  <text x="80" y="120" font-family="system-ui, sans-serif" font-size="48" font-weight="700" fill="#FFFFFF" letter-spacing="-0.02em">FREQ<tspan fill="#6366F1">.</tspan>AI</text>
+  <!-- Headline -->
+  <text x="80" y="220" font-family="system-ui, sans-serif" font-size="56" font-weight="700" fill="#FFFFFF" letter-spacing="-0.02em">Autonomous maritime</text>
+  <text x="80" y="290" font-family="system-ui, sans-serif" font-size="56" font-weight="700" fill="#FFFFFF" letter-spacing="-0.02em">cargo intelligence,</text>
+  <text x="80" y="360" font-family="system-ui, sans-serif" font-size="56" font-weight="700" fill="#818CF8" letter-spacing="-0.02em">surveyed in minutes.</text>
+  <!-- Location -->
+  <text x="80" y="440" font-family="monospace" font-size="20" fill="#7A7A8C">ADM WAGGAMAN TERMINAL · MISSISSIPPI RIVER</text>
+  <text x="80" y="470" font-family="monospace" font-size="16" fill="#7A7A8C">29.9010°N · 90.2140°W</text>
+  <!-- Status pill -->
+  <rect x="80" y="520" width="280" height="36" rx="18" fill="rgba(99,102,241,0.1)" stroke="rgba(99,102,241,0.2)" stroke-width="1"/>
+  <circle cx="104" cy="538" r="5" fill="#818CF8"/>
+  <text x="120" y="543" font-family="monospace" font-size="13" fill="#818CF8" letter-spacing="0.05em">LIVE · PHASE 3 DIGITAL TWIN</text>
+  <!-- Accent line -->
+  <rect x="80" y="580" width="200" height="2" fill="#6366F1" rx="1"/>
+</svg>

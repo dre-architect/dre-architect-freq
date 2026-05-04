@@ -1,26 +1,141 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Sovereign Palette — Primitive Tier */
+  --indigo-400: #818CF8;
+  --indigo-500: #6366F1;
+  --indigo-600: #4F46E5;
+  --dark-matter: #07070C;
+  --dark-matter-raised: #0F0F17;
+  --dark-matter-border: #1C1C2A;
+  --white: #FFFFFF;
+  --white-muted: #B4B4C5;
+  --white-dim: #7A7A8C;
+
+  /* Semantic aliases */
+  --background: var(--dark-matter);
+  --foreground: var(--white);
+  --surface: var(--dark-matter-raised);
+  --border: var(--dark-matter-border);
+  --accent: var(--indigo-500);
+  --accent-hover: var(--indigo-600);
+  --accent-soft: var(--indigo-400);
+  --text-primary: var(--white);
+  --text-secondary: var(--white-muted);
+  --text-tertiary: var(--white-dim);
+
+  /* Type Scale */
+  --text-xs: clamp(0.625rem, 0.6rem + 0.15vw, 0.75rem);
+  --text-sm: clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
+  --text-base: clamp(0.875rem, 0.8rem + 0.3vw, 1rem);
+  --text-lg: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  --text-xl: clamp(1.125rem, 1rem + 0.6vw, 1.25rem);
+  --text-2xl: clamp(1.25rem, 1rem + 1.2vw, 1.5rem);
+  --text-3xl: clamp(2.5rem, 2rem + 2.5vw, 4.5rem);
+
+  /* Spacing (8px system) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --space-8: 4rem;
+  --space-10: 5rem;
+  --space-12: 6rem;
+  --space-16: 8rem;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Spring easing */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-dark-matter: var(--dark-matter);
+  --color-dark-matter-raised: var(--dark-matter-raised);
+  --color-dark-matter-border: var(--dark-matter-border);
+  --color-indigo-400: var(--indigo-400);
+  --color-indigo-500: var(--indigo-500);
+  --color-indigo-600: var(--indigo-600);
+  --color-white-muted: var(--white-muted);
+  --color-white-dim: var(--white-dim);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-display: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--dark-matter);
+  color: var(--white);
+  font-family: var(--font-ibm-plex-sans), system-ui, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+  line-height: 1.2;
+  margin: 0;
+}
+
+code, .font-mono {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--indigo-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--dark-matter);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--dark-matter-border);
+  border-radius: var(--radius-full);
 }
